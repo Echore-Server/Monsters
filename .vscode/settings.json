@@ -1,0 +1,7 @@
+{
+	"intelephense.environment.includePaths": [
+		"C:\\Users\\fwip9\\.vscode\\pmmp_source",
+		"../SmartEntity/",
+		"../PocketEvent/"
+	],
+}
