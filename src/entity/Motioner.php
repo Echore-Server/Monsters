@@ -33,10 +33,16 @@ class Motioner {
 		return $this->modifiers;
 	}
 
-	public function customAttack(EntityDamageByEntityEvent $source, Modifier $xz, Modifier $y, float $base = 0.4): void {
+	public function customAttack(EntityDamageByEntityEvent $source, Modifier $xz, Modifier $y, float $base = 0.4, ?Modifier $onGroundModifier = null): void {
 		$this->entity->attack($source);
 
+		$onGroundModifier ??= Modifier::default();
+
 		if (!$source->isCancelled()) {
+			if ($this->entity->isOnGround()){
+				$xz = $xz->merge($onGroundModifier);
+				$y = $y->merge($onGroundModifier);
+			}
 			$this->knockBack($source->getDamager()->getPosition(), $xz, $y, $base);
 		}
 	}
