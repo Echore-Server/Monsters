@@ -5,10 +5,7 @@ declare(strict_types=1);
 namespace Lyrica0954\Monsters\entity;
 
 use Lyrica0954\Monsters\entity\source\ContinuousDamageEvent;
-use Lyrica0954\Monsters\entity\source\InboundDamageModifierEvent;
 use Lyrica0954\Monsters\entity\state\StateManager;
-use Lyrica0954\SmartEntity\entity\LivingBase;
-use Lyrica0954\SmartEntity\entity\walking\FightingEntity;
 use pocketmine\entity\Living;
 
 interface MonsterBase {
