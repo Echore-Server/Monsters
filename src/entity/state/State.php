@@ -6,6 +6,7 @@ namespace Lyrica0954\Monsters\entity\state;
 
 use pocketmine\entity\Entity;
 use pocketmine\entity\Living;
+use pocketmine\utils\ObjectSet;
 
 abstract class State {
 
@@ -15,10 +16,13 @@ abstract class State {
 
 	protected bool $disposed;
 
+	protected ObjectSet $removeHooks;
+
 	public function __construct(Living $entity) {
 		$this->entity = $entity;
 		$this->active = false;
 		$this->disposed = false;
+		$this->removeHooks = new ObjectSet();
 	}
 
 	public function useHitEntity(): bool {
@@ -57,6 +61,13 @@ abstract class State {
 
 	abstract public function onRemove(): void;
 
+
+	/**
+	 * @return ObjectSet
+	 */
+	public function getRemoveHooks(): ObjectSet {
+		return $this->removeHooks;
+	}
 	/**
 	 * Get the value of active
 	 *

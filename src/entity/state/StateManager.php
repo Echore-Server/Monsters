@@ -133,6 +133,10 @@ class StateManager {
 			}
 		}
 
+		foreach($state->getRemoveHooks() as $hook){
+			$hook($state);
+		}
+
 		$state->dispose();
 	}
 
