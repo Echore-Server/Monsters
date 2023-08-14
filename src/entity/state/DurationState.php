@@ -47,6 +47,14 @@ abstract class DurationState extends UpdatingState {
 	}
 
 	/**
+	 * @param int $duration
+	 */
+	public function setDuration(int $duration): void {
+		$this->duration = $duration;
+		$this->useBaseTick = $duration > 0;
+	}
+
+	/**
 	 * Get the value of remainTick
 	 *
 	 * @return int
