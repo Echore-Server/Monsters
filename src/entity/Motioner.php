@@ -6,8 +6,8 @@ namespace Lyrica0954\Monsters\entity;
 
 use Echore\Stargazer\Modifier;
 use Lyrica0954\Monsters\entity\source\MonsterMotionEvent;
+use Lyrica0954\Monsters\utils\MotionModifiers;
 use Lyrica0954\Monsters\utils\ValueModifier;
-use Lyrica0954\Monsters\utils\Vector3EachModifiers;
 use pocketmine\entity\Attribute;
 use pocketmine\entity\Entity;
 use pocketmine\event\entity\EntityDamageByEntityEvent;
@@ -17,19 +17,19 @@ class Motioner {
 
 	protected Entity $entity;
 
-	protected Vector3EachModifiers $modifiers;
+	protected MotionModifiers $modifiers;
 
 	public function __construct(Entity $entity) {
-		$this->modifiers = new Vector3EachModifiers();
+		$this->modifiers = new MotionModifiers();
 		$this->entity = $entity;
 	}
 
 	/**
 	 * Get the value of modifiers
 	 *
-	 * @return Vector3EachModifiers
+	 * @return MotionModifiers
 	 */
-	public function getModifiers(): Vector3EachModifiers {
+	public function getModifiers(): MotionModifiers {
 		return $this->modifiers;
 	}
 
@@ -39,7 +39,7 @@ class Motioner {
 		$onGroundModifier ??= Modifier::default();
 
 		if (!$source->isCancelled()) {
-			if ($this->entity->isOnGround()){
+			if ($this->entity->isOnGround()) {
 				$xz = $xz->merge($onGroundModifier);
 				$y = $y->merge($onGroundModifier);
 			}
