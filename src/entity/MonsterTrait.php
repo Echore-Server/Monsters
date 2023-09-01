@@ -11,6 +11,7 @@ use pocketmine\entity\Living;
 use pocketmine\event\entity\EntityDamageByEntityEvent;
 use pocketmine\event\entity\EntityDamageEvent;
 use pocketmine\player\Player;
+use pocketmine\utils\ObjectSet;
 
 trait MonsterTrait {
 
@@ -35,6 +36,15 @@ trait MonsterTrait {
 
 	protected Motioner $motioner;
 
+	protected ObjectSet $attackListeners;
+
+	/**
+	 * @return ObjectSet
+	 */
+	public function getAttackListeners(): ObjectSet {
+		return $this->attackListeners;
+	}
+
 	public function applyContinuousDamage(ContinuousDamageEvent $source): void {
 		$source->call();
 
@@ -47,11 +57,11 @@ trait MonsterTrait {
 
 	//public function applyInboundDamageModifier(InboundDamageModifierEvent $source): void {
 	//	$source->call();
-//
+	//
 	//	if ($source->isCancelled()) {
 	//		return;
 	//	}
-//
+	//
 	//	$this->inboundDamageModifiers[] = $source;
 	//	$this->lastInboundDamageModified[spl_object_hash($source)] = $this->ticksLived;
 	//}
@@ -115,6 +125,7 @@ trait MonsterTrait {
 		$this->states = new StateManager($this);
 		$this->motioner = new Motioner($this);
 		$this->inboundDamageRecord = new FloatPlayerRecord();
+		$this->attackListeners = new ObjectSet();
 	}
 
 	protected function onDispose(): void {
@@ -142,7 +153,10 @@ trait MonsterTrait {
 			}
 		}
 
-		$this->states->update($tickDiff);
+		if ($this->isAlive() && !$this->isFlaggedForDespawn()) {
+
+			$this->states->update($tickDiff);
+		}
 
 		return $hasUpdate;
 	}
@@ -169,6 +183,10 @@ trait MonsterTrait {
 		}
 
 		parent::attack($source);
+
+		foreach ($this->attackListeners as $listener) {
+			($listener)($source);
+		}
 
 		if ($source instanceof EntityDamageByEntityEvent) {
 			if (($damager = $source->getDamager()) instanceof Player) {
