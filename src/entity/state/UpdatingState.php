@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Lyrica0954\Monsters\entity\state;
 
-use Exception;
+use RuntimeException;
 
 abstract class UpdatingState extends State {
 
@@ -24,7 +24,7 @@ abstract class UpdatingState extends State {
 
 	public function baseTick(int $tickDiff = 1): void {
 		if (!$this->active) {
-			throw new Exception("cant update while deactivated");
+			throw new RuntimeException("cant update while deactivated");
 		}
 
 		$this->onUpdate($tickDiff);
