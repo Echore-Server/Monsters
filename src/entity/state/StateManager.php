@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace Lyrica0954\Monsters\entity\state;
 
-use Exception;
+use Closure;
 use pocketmine\entity\Living;
+use pocketmine\utils\ObjectSet;
 use RuntimeException;
 
 /**
@@ -37,6 +38,13 @@ class StateManager {
 
 	protected bool $disposed;
 
+	protected ObjectSet $applyListeners;
+
+	/**
+	 * @var array<string, ObjectSet>
+	 */
+	protected array $applyHooks;
+
 	public function __construct(Living $entity) {
 		$this->entity = $entity;
 		$this->states = [];
@@ -44,6 +52,15 @@ class StateManager {
 		$this->updatingStates = [];
 		$this->stateByClass = [];
 		$this->disposed = false;
+		$this->applyHooks = [];
+		$this->applyListeners = new ObjectSet();
+	}
+
+	/**
+	 * @return ObjectSet<Closure(State): void>
+	 */
+	public function getApplyListeners(): ObjectSet {
+		return $this->applyListeners;
 	}
 
 	/**
@@ -83,6 +100,14 @@ class StateManager {
 
 		if ($state instanceof UpdatingState && $state->useBaseTick()) {
 			$this->updatingStates[spl_object_hash($state)] = $state;
+		}
+
+		foreach ($this->applyListeners as $listener) {
+			($listener)($state);
+		}
+
+		foreach ($this->getApplyHooks($state::class) as $hook) {
+			($hook)($state);
 		}
 
 		return true;
@@ -133,7 +158,7 @@ class StateManager {
 			}
 		}
 
-		foreach($state->getRemoveHooks() as $hook){
+		foreach ($state->getRemoveHooks() as $hook) {
 			$hook($state);
 		}
 
@@ -150,6 +175,10 @@ class StateManager {
 		foreach ($this->states as $state) {
 			$this->remove($state);
 		}
+	}
+
+	public function getApplyHooks(string $stateClass): ObjectSet {
+		return $this->applyHooks[$stateClass] ??= new ObjectSet();
 	}
 
 	public function removeAllOf(string $class): array {
@@ -201,7 +230,7 @@ class StateManager {
 
 	public function action(string $action): void {
 		if ($this->disposed) {
-			throw new Exception("state manager is already disposed");
+			throw new RuntimeException("state manager is already disposed");
 		}
 
 		foreach ($this->actionStates[$action] ?? [] as $state) {
