@@ -15,21 +15,6 @@ use pocketmine\utils\ObjectSet;
 
 trait MonsterTrait {
 
-	/**
-	 * @var ContinuousDamageEvent[]
-	 */
-	protected array $continuousDamages = [];
-
-	/**
-	 * @var InboundDamageModifierEvent[]
-	 */
-	protected array $inboundDamageModifiers = [];
-
-	/**
-	 * @var int[]
-	 */
-	protected array $lastInboundDamageModified = [];
-
 	protected StateManager $states;
 
 	protected FloatPlayerRecord $inboundDamageRecord;
@@ -44,27 +29,6 @@ trait MonsterTrait {
 	public function getAttackListeners(): ObjectSet {
 		return $this->attackListeners;
 	}
-
-	public function applyContinuousDamage(ContinuousDamageEvent $source): void {
-		$source->call();
-
-		if ($source->isCancelled()) {
-			return;
-		}
-
-		$this->continuousDamages[] = $source;
-	}
-
-	//public function applyInboundDamageModifier(InboundDamageModifierEvent $source): void {
-	//	$source->call();
-	//
-	//	if ($source->isCancelled()) {
-	//		return;
-	//	}
-	//
-	//	$this->inboundDamageModifiers[] = $source;
-	//	$this->lastInboundDamageModified[spl_object_hash($source)] = $this->ticksLived;
-	//}
 
 	public function hitEntity(Entity $entity, float $range): void {
 		parent::hitEntity($entity, $range);
@@ -121,6 +85,27 @@ trait MonsterTrait {
 		return $this;
 	}
 
+	/**
+	 * @param EntityDamageEvent $source
+	 *
+	 * @return void
+	 *
+	 * @notHandler
+	 */
+	public function attack(EntityDamageEvent $source): void {
+		parent::attack($source);
+
+		foreach ($this->attackListeners as $listener) {
+			($listener)($source);
+		}
+
+		if ($source instanceof EntityDamageByEntityEvent) {
+			if (($damager = $source->getDamager()) instanceof Player) {
+				$this->inboundDamageRecord->add($damager, $source->getFinalDamage());
+			}
+		}
+	}
+
 	protected function initMonster(): void {
 		$this->states = new StateManager($this);
 		$this->motioner = new Motioner($this);
@@ -137,61 +122,10 @@ trait MonsterTrait {
 	protected function entityBaseTick(int $tickDiff = 1): bool {
 		$hasUpdate = parent::entityBaseTick($tickDiff);
 
-		foreach ($this->continuousDamages as $index => $event) {
-			$continuousDamage = $event->getContinuousDamage();
-			$count = $continuousDamage->tick($tickDiff);
-			for ($i = 0; $i < $count; $i++) {
-				$source = $event->source();
-				$source->setAttackCooldown(0);
-
-				$this->attack($source);
-				$hasUpdate = true;
-			}
-
-			if ($continuousDamage->getCount() <= 0) {
-				unset($this->continuousDamages[$index]);
-			}
-		}
-
 		if ($this->isAlive() && !$this->isFlaggedForDespawn()) {
-
 			$this->states->update($tickDiff);
 		}
 
 		return $hasUpdate;
-	}
-
-	/**
-	 * @param EntityDamageEvent $source
-	 *
-	 * @return void
-	 *
-	 * @notHandler
-	 */
-	public function attack(EntityDamageEvent $source): void {
-		foreach ($this->inboundDamageModifiers as $index => $event) {
-			$modifier = $event->getDamageModifier();
-			$elapsed = $this->ticksLived - $this->lastInboundDamageModified[spl_object_hash($event)];
-			if ($modifier->tick($elapsed)) {
-				$modifier->apply($source);
-
-				$this->lastInboundDamageModified[spl_object_hash($event)] = $this->ticksLived;
-			} else {
-				unset($this->inboundDamageModifiers[$index]);
-				unset($this->lastInboundDamageModified[spl_object_hash($event)]);
-			}
-		}
-
-		parent::attack($source);
-
-		foreach ($this->attackListeners as $listener) {
-			($listener)($source);
-		}
-
-		if ($source instanceof EntityDamageByEntityEvent) {
-			if (($damager = $source->getDamager()) instanceof Player) {
-				$this->inboundDamageRecord->add($damager, $source->getFinalDamage());
-			}
-		}
 	}
 }

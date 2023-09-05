@@ -5,11 +5,19 @@ declare(strict_types=1);
 namespace Lyrica0954\Monsters;
 
 use Lyrica0954\Monsters\entity\player\MonsterPlayer;
+use pocketmine\event\Listener;
+use pocketmine\event\player\PlayerQuitEvent;
 use pocketmine\plugin\PluginBase;
 use pocketmine\scheduler\ClosureTask;
 use pocketmine\Server;
 
-class Main extends PluginBase {
+class Main extends PluginBase implements Listener {
+
+	public function onPlayerQuit(PlayerQuitEvent $event): void {
+		$player = $event->getPlayer();
+
+		MonsterPlayer::dispose($player);
+	}
 
 	protected function onEnable(): void {
 		$updateRate = 1;
@@ -18,6 +26,9 @@ class Main extends PluginBase {
 				foreach (Server::getInstance()->getOnlinePlayers() as $player) {
 					MonsterPlayer::get($player)->update($updateRate);
 				}
-			}), $updateRate);
+			}), $updateRate
+		);
+
+		$this->getServer()->getPluginManager()->registerEvents($this, $this);
 	}
 }
