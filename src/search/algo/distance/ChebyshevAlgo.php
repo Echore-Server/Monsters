@@ -8,9 +8,17 @@ use pocketmine\math\Vector3;
 
 class ChebyshevAlgo extends DistanceAlgo {
 
+	public function distanceSquaredIfSupported(Vector3 $a, Vector3 $b): float {
+		return $this->distance($a, $b);
+	}
+
 	public function distance(Vector3 $a, Vector3 $b): float {
 		$d = $b->subtractVector($a)->abs();
 
 		return max($d->x, $d->y, $d->z);
+	}
+
+	public function hasSupportSquared(): bool {
+		return false;
 	}
 }

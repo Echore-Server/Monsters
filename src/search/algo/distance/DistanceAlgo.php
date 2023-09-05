@@ -18,4 +18,14 @@ abstract class DistanceAlgo {
 	}
 
 	abstract public function distance(Vector3 $a, Vector3 $b): float;
+
+	public function distanceSquaredBoundingBoxIfSupported(AxisAlignedBB $bb, Vector3 $pos): float {
+		$point = Utils::getNearestPoint($bb, $pos);
+
+		return $this->distanceSquaredIfSupported($point, $pos);
+	}
+
+	abstract public function distanceSquaredIfSupported(Vector3 $a, Vector3 $b): float;
+
+	abstract public function hasSupportSquared(): bool;
 }

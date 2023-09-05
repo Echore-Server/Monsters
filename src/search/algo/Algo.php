@@ -22,4 +22,8 @@ class Algo {
 	public function getDistance(): DistanceAlgo {
 		return $this->distance;
 	}
+
+	public function processDistanceSquared(float $distance): float {
+		return $this->distance->hasSupportSquared() ? $distance ** 2 : $distance;
+	}
 }
