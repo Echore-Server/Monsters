@@ -28,8 +28,10 @@ class SimpleEntitySearcher implements EntitySearcher {
 	}
 
 	public function getWithinSpecifyRange(Position $position, float $rangeMin, float $rangeMax, ?EntitySearchOption $option = null): Generator {
+		$rangeMin = $this->algo->processDistanceSquared($rangeMin);
+		$rangeMax = $this->algo->processDistanceSquared($rangeMax);
 		foreach ($this->getAreaEntities($position, $rangeMax, $option) as $entity) {
-			$dist = $this->algo->getDistance()->distanceBoundingBox($entity->getBoundingBox(), $position);
+			$dist = $this->algo->getDistance()->distanceSquaredBoundingBoxIfSupported($entity->getBoundingBox(), $position);
 			if ($dist < $rangeMin || $dist > $rangeMax) {
 				continue;
 			}
@@ -77,7 +79,7 @@ class SimpleEntitySearcher implements EntitySearcher {
 
 					yield $entity;
 
-					$count++;
+					++$count;
 					if ($count > $option->max && $option->max > 0) {
 						break 3;
 					}
@@ -98,8 +100,9 @@ class SimpleEntitySearcher implements EntitySearcher {
 	}
 
 	public function getWithinRange(Position $position, float $range, EntitySearchOption $option = null): Generator {
+		$range = $this->algo->processDistanceSquared($range);
 		foreach ($this->getAreaEntities($position, $range, $option) as $entity) {
-			if ($this->algo->getDistance()->distanceBoundingBox($entity->getBoundingBox(), $position) > $range) {
+			if ($this->algo->getDistance()->distanceSquaredBoundingBoxIfSupported($entity->getBoundingBox(), $position) > $range) {
 				continue;
 			}
 
@@ -109,11 +112,13 @@ class SimpleEntitySearcher implements EntitySearcher {
 
 	public function getWithinSpecifyRangePlane(Vector2 $position, World $world, float $rangeMin, float $rangeMax, ?EntitySearchOption $option = null): Generator {
 		$pos = Position::fromObject(new Vector3($position->x, 0, $position->y), $world);
+		$rangeMin = $this->algo->processDistanceSquared($rangeMin);
+		$rangeMax = $this->algo->processDistanceSquared($rangeMax);
 		foreach ($this->getAreaEntities($pos, $rangeMax, $option) as $entity) {
 			$bb = clone $entity->getBoundingBox();
 			$bb->minY = 0;
 			$bb->maxY = 0;
-			$dist = $this->algo->getDistance()->distanceBoundingBox($bb, $pos);
+			$dist = $this->algo->getDistance()->distanceSquaredBoundingBoxIfSupported($bb, $pos);
 			if ($dist < $rangeMin || $dist > $rangeMax) {
 				continue;
 			}
@@ -124,10 +129,10 @@ class SimpleEntitySearcher implements EntitySearcher {
 
 	public function getNearest(Position $position, float $maxDistance = PHP_INT_MAX, ?EntitySearchOption $option = null): ?EntitySearchResult {
 		$e = null;
-		$d = $maxDistance;
+		$d = $maxDistance !== PHP_INT_MAX ? $this->algo->processDistanceSquared($maxDistance) : $maxDistance;
 
 		foreach ($this->getAreaEntities($position, $maxDistance, $option) as $entity) {
-			$dist = $this->algo->getDistance()->distanceBoundingBox($entity->getBoundingBox(), $position);
+			$dist = $this->algo->getDistance()->distanceSquaredBoundingBoxIfSupported($entity->getBoundingBox(), $position);
 
 			if ($dist < $d) {
 				$e = $entity;
@@ -227,11 +232,12 @@ class SimpleEntitySearcher implements EntitySearcher {
 
 	public function getWithinRangePlane(Vector2 $position, World $world, float $range, ?EntitySearchOption $option = null): Generator {
 		$pos = Position::fromObject(new Vector3($position->x, 0, $position->y), $world);
+		$range = $this->algo->processDistanceSquared($range);
 		foreach ($this->getAreaEntities($pos, $range, $option) as $entity) {
 			$bb = clone $entity->getBoundingBox();
 			$bb->minY = 0;
 			$bb->maxY = 0;
-			if ($this->algo->getDistance()->distanceBoundingBox($bb, $pos) > $range) {
+			if ($this->algo->getDistance()->distanceSquaredBoundingBoxIfSupported($bb, $pos) > $range) {
 				continue;
 			}
 
