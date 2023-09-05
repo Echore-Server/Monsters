@@ -18,22 +18,10 @@ class Utils {
 	 * O(3)
 	 */
 	public static function getNearestPoint(AxisAlignedBB $bb, Vector3 $pos): Vector3 {
-		$point = Vector3::zero();
-
-		$min = new Vector3($bb->minX, $bb->minY, $bb->minZ);
-		$max = new Vector3($bb->maxX, $bb->maxY, $bb->maxZ);
-
-		$minDist = $pos->subtractVector($min)->abs();
-		$maxDist = $pos->subtractVector($max)->abs();
-
-		foreach (["x", "y", "z"] as $o) {
-			if ($minDist->$o > $maxDist->$o) {
-				$point->$o = $max->$o;
-			} else {
-				$point->$o = $min->$o;
-			}
-		}
-
-		return $point;
+		return new Vector3(
+			max($bb->minX, min($pos->x, $bb->maxX)),
+			max($bb->minY, min($pos->y, $bb->maxY)),
+			max($bb->minZ, min($pos->z, $bb->maxZ)),
+		);
 	}
 }
