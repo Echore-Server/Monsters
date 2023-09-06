@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Lyrica0954\Monsters\search;
 
-use Generator;
 use Lyrica0954\Monsters\search\algo\Algo;
 use Lyrica0954\Monsters\search\shape\CircularSectorShape;
 use Lyrica0954\Monsters\search\shape\TriangleShape;
+use Lyrica0954\Monsters\timings\MonstersTimings;
 use Lyrica0954\Monsters\utils\RayTraceEntityResult;
 use Lyrica0954\Monsters\utils\Utils;
 use pocketmine\math\Facing;
@@ -27,33 +27,36 @@ class SimpleEntitySearcher implements EntitySearcher {
 		$this->algo = $algo;
 	}
 
-	public function getWithinSpecifyRange(Position $position, float $rangeMin, float $rangeMax, ?EntitySearchOption $option = null): Generator {
+	public function getWithinSpecifyRange(Position $position, float $rangeMin, float $rangeMax, ?EntitySearchOption $option = null): array {
 		$rangeMin = $this->algo->processDistanceSquared($rangeMin);
 		$rangeMax = $this->algo->processDistanceSquared($rangeMax);
+
+		$entities = [];
 		foreach ($this->getAreaEntities($position, $rangeMax, $option) as $entity) {
 			$dist = $this->algo->getDistance()->distanceSquaredBoundingBoxIfSupported($entity->getBoundingBox(), $position);
 			if ($dist < $rangeMin || $dist > $rangeMax) {
 				continue;
 			}
 
-			yield $entity;
+			$entities[] = $entity;
 		}
+
+		return $entities;
 	}
 
-	public function getAreaEntities(Position $position, float $distance, EntitySearchOption $option = null): Generator {
+	public function getAreaEntities(Position $position, float $distance, EntitySearchOption $option = null): array {
 		$size = $this->getChunkSize(new Vector2($position->x, $position->z), $distance);
-		$option = $option ?? EntitySearchOption::default();
+		$option ??= EntitySearchOption::default();
 		$count = 0;
 
 		// for lightweight
 		if ($distance >= PHP_INT_MAX - 1) {
-			foreach ($position->getWorld()->getEntities() as $entity) {
-				yield $entity;
-			}
-
-			return;
+			return $position->getWorld()->getEntities();
 		}
 
+		$entities = [];
+
+		MonstersTimings::$searchAreaEntities->startTiming();
 		for ($x = $size->min->getX(); $x <= $size->max->getX(); ++$x) {
 			for ($z = $size->min->getZ(); $z <= $size->max->getZ(); ++$z) {
 				if (!$position->getWorld()->isChunkLoaded($x, $z)) {
@@ -77,7 +80,7 @@ class SimpleEntitySearcher implements EntitySearcher {
 						continue;
 					}
 
-					yield $entity;
+					$entities[] = $entity;
 
 					++$count;
 					if ($count > $option->max && $option->max > 0) {
@@ -86,6 +89,10 @@ class SimpleEntitySearcher implements EntitySearcher {
 				}
 			}
 		}
+
+		MonstersTimings::$searchAreaEntities->stopTiming();
+
+		return $entities;
 	}
 
 	public function getChunkSize(Vector2 $position, float $distance): ChunkSize {
@@ -99,21 +106,27 @@ class SimpleEntitySearcher implements EntitySearcher {
 		return new ChunkSize(new ChunkPosition($minX, $minZ), new ChunkPosition($maxX, $maxZ));
 	}
 
-	public function getWithinRange(Position $position, float $range, EntitySearchOption $option = null): Generator {
+	public function getWithinRange(Position $position, float $range, EntitySearchOption $option = null): array {
 		$range = $this->algo->processDistanceSquared($range);
+
+		$entities = [];
 		foreach ($this->getAreaEntities($position, $range, $option) as $entity) {
 			if ($this->algo->getDistance()->distanceSquaredBoundingBoxIfSupported($entity->getBoundingBox(), $position) > $range) {
 				continue;
 			}
 
-			yield $entity;
+			$entities[] = $entity;
 		}
+
+		return $entities;
 	}
 
-	public function getWithinSpecifyRangePlane(Vector2 $position, World $world, float $rangeMin, float $rangeMax, ?EntitySearchOption $option = null): Generator {
+	public function getWithinSpecifyRangePlane(Vector2 $position, World $world, float $rangeMin, float $rangeMax, ?EntitySearchOption $option = null): array {
 		$pos = Position::fromObject(new Vector3($position->x, 0, $position->y), $world);
 		$rangeMin = $this->algo->processDistanceSquared($rangeMin);
 		$rangeMax = $this->algo->processDistanceSquared($rangeMax);
+
+		$entities = [];
 		foreach ($this->getAreaEntities($pos, $rangeMax, $option) as $entity) {
 			$bb = clone $entity->getBoundingBox();
 			$bb->minY = 0;
@@ -123,8 +136,10 @@ class SimpleEntitySearcher implements EntitySearcher {
 				continue;
 			}
 
-			yield $entity;
+			$entities[] = $entity;
 		}
+
+		return $entities;
 	}
 
 	public function getNearest(Position $position, float $maxDistance = PHP_INT_MAX, ?EntitySearchOption $option = null): ?EntitySearchResult {
@@ -147,11 +162,12 @@ class SimpleEntitySearcher implements EntitySearcher {
 		return new EntitySearchResult($e, $d);
 	}
 
-	public function getLineOfSight(Position $position, Vector3 $direction, float $length, ?Vector3 $expand = null, EntitySearchOption $option = null): Generator {
-		$expand = $expand ?? new Vector3(0, 0, 0);
+	public function getLineOfSight(Position $position, Vector3 $direction, float $length, ?Vector3 $expand = null, EntitySearchOption $option = null): array {
+		$expand ??= new Vector3(0, 0, 0);
 		$min = $position;
 		$max = $min->addVector($direction->multiply($length));
 
+		$results = [];
 		foreach ($this->getAreaEntities($min, $length + 1, $option) as $entity) {
 			$bb = $entity->getBoundingBox()->expandedCopy($expand->x, $expand->y, $expand->z);
 
@@ -166,17 +182,21 @@ class SimpleEntitySearcher implements EntitySearcher {
 			}
 
 			if ($result instanceof RayTraceResult) {
-				yield new RayTraceEntityResult($entity, $result->getHitFace(), $result->getHitVector());
+				$results[] = new RayTraceEntityResult($entity, $result->getHitFace(), $result->getHitVector());
 			}
 		}
+
+		return $results;
 	}
 
-	public function getInsideOfTriangle(TriangleShape $shape, World $world, ?EntitySearchOption $option = null): Generator {
+	public function getInsideOfTriangle(TriangleShape $shape, World $world, ?EntitySearchOption $option = null): array {
 		// 外接円を求めてもよかった
 		$v = sqrt(max($shape->a->lengthSquared(), $shape->b->lengthSquared(), $shape->c->lengthSquared()));
 		$v *= 1.1; // 範囲内になかったら困るから少し拡大したろ (;-;)
 
 		$center = $shape->a->addVector($shape->b)->addVector($shape->c)->divide(3);
+
+		$entities = [];
 
 		foreach ($this->getAreaEntities(Position::fromObject($center, $world), $v, $option) as $entity) {
 			$point = Utils::getNearestPoint($entity->getBoundingBox(), $center);
@@ -198,15 +218,18 @@ class SimpleEntitySearcher implements EntitySearcher {
 			$dotB = $c1->dot($c3);
 
 			if ($dotA > 0 && $dotB > 0) {
-				yield $entity;
+				$entities[] = $entity;
 			}
 		}
+
+		return $entities;
 	}
 
-	public function getInsideOfCircularSector(CircularSectorShape $shape, World $world, float $height, ?EntitySearchOption $option = null): Generator {
+	public function getInsideOfCircularSector(CircularSectorShape $shape, World $world, float $height, ?EntitySearchOption $option = null): array {
 		$cos = cos(deg2rad($shape->rangeDegree / 2));
 		$vcen = new Vector2($shape->center->x, $shape->center->z);
 
+		$entities = [];
 		foreach ($this->getWithinRangePlane($vcen, $world, $shape->radius, $option) as $entity) {
 			$ep = new Vector2($entity->getPosition()->x, $entity->getPosition()->z);
 			$ev = $entity->getPosition();
@@ -226,13 +249,17 @@ class SimpleEntitySearcher implements EntitySearcher {
 				continue;
 			}
 
-			yield $entity;
+			$entities[] = $entity;
 		}
+
+		return $entities;
 	}
 
-	public function getWithinRangePlane(Vector2 $position, World $world, float $range, ?EntitySearchOption $option = null): Generator {
+	public function getWithinRangePlane(Vector2 $position, World $world, float $range, ?EntitySearchOption $option = null): array {
 		$pos = Position::fromObject(new Vector3($position->x, 0, $position->y), $world);
 		$range = $this->algo->processDistanceSquared($range);
+
+		$entities = [];
 		foreach ($this->getAreaEntities($pos, $range, $option) as $entity) {
 			$bb = clone $entity->getBoundingBox();
 			$bb->minY = 0;
@@ -241,7 +268,9 @@ class SimpleEntitySearcher implements EntitySearcher {
 				continue;
 			}
 
-			yield $entity;
+			$entities[] = $entity;
 		}
+
+		return $entities;
 	}
 }

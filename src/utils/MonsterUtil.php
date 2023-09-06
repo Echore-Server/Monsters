@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace Lyrica0954\Monsters\utils;
 
-use Generator;
 use Lyrica0954\Monsters\entity\MonsterBase;
 use Lyrica0954\Monsters\entity\player\MonsterPlayer;
+use Lyrica0954\Monsters\timings\MonstersTimings;
 use pocketmine\entity\Entity;
 use pocketmine\player\Player;
-use Traversable;
 
 class MonsterUtil {
 
@@ -25,13 +24,15 @@ class MonsterUtil {
 		return ($entity instanceof Player) ? MonsterPlayer::get($entity) : $entity;
 	}
 
-
 	/**
-	 * @param Traversable<mixed, (Entity|RayTraceEntityResult)> $ite
+	 * @param iterable<mixed, (Entity|RayTraceEntityResult)> $ite
 	 *
-	 * @return Generator<mixed, mixed, MonsterBase, mixed>
+	 * @return MonsterBase[]
 	 */
-	public static function filterMonster(Traversable $ite, bool $player = false): Generator {
+	public static function filterMonster(iterable $ite, bool $player = false): array {
+		$monsters = [];
+
+		MonstersTimings::$filtering->startTiming();
 		foreach ($ite as $entity) {
 			if ($entity instanceof RayTraceEntityResult) {
 				$entity = $entity->getEntity();
@@ -39,41 +40,36 @@ class MonsterUtil {
 
 			$e = self::cast($entity, $player);
 			if ($e instanceof MonsterBase) {
-				yield $e;
+				$monsters[] = $e;
 			}
 		}
+
+		MonstersTimings::$filtering->stopTiming();
+
+		return $monsters;
 	}
 
 	/**
-	 * @param Traversable<mixed, RayTraceEntityResult> $ite
+	 * @param iterable<mixed, RayTraceEntityResult> $ite
 	 * @param bool $player
 	 *
-	 * @return Generator<mixed, RayTraceEntityResult, MonsterBase, mixed>
+	 * @return (array{RayTraceEntityResult, MonsterBase})[]
 	 */
-	public static function filterMonsterRayTrace(Traversable $ite, bool $player = false): Generator {
+	public static function filterMonsterRayTrace(iterable $ite, bool $player = false): array {
+		$results = [];
+
+		MonstersTimings::$filtering->startTiming();
 		foreach ($ite as $result) {
 			$entity = $result->getEntity();
 
 			$e = self::cast($entity, $player);
 
 			if ($e instanceof MonsterBase) {
-				yield $result => $e;
+				$results[] = [$result, $e];
 			}
 		}
-	}
+		MonstersTimings::$filtering->stopTiming();
 
-	/**
-	 * @param Traversable<mixed, Entity> $ite
-	 *
-	 * @return Generator<mixed, mixed, (MonsterBase&FightingEntity), mixed>
-	 */
-	public static function filterFightMonster(Traversable $ite, bool $includePlayer = false): Generator {
-		foreach ($ite as $entity) {
-			$e = self::cast($entity, false);
-
-			if (($e instanceof MonsterBase && $e instanceof FightingEntity) || ($e instanceof MonsterPlayer && $includePlayer)) {
-				yield $e;
-			}
-		}
+		return $results;
 	}
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Lyrica0954\Monsters;
 
 use Lyrica0954\Monsters\entity\player\MonsterPlayer;
+use Lyrica0954\Monsters\timings\MonstersTimings;
 use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerQuitEvent;
 use pocketmine\plugin\PluginBase;
@@ -28,6 +29,8 @@ class Main extends PluginBase implements Listener {
 				}
 			}), $updateRate
 		);
+
+		MonstersTimings::init();
 
 		$this->getServer()->getPluginManager()->registerEvents($this, $this);
 	}
