@@ -55,24 +55,6 @@ trait MonsterTrait {
 	}
 
 	/**
-	 * Get the value of continuousDamages
-	 *
-	 * @return array
-	 */
-	public function getContinuousDamages(): array {
-		return $this->continuousDamages;
-	}
-
-	/**
-	 * Get the value of inboundDamageModifiers
-	 *
-	 * @return array
-	 */
-	public function getInboundDamageModifiers(): array {
-		return $this->inboundDamageModifiers;
-	}
-
-	/**
 	 * Get the value of motioner
 	 *
 	 * @return Motioner
