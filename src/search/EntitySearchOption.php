@@ -18,13 +18,19 @@ class EntitySearchOption {
 	 * @param int[] $exclude entity runtime id array
 	 */
 	public function __construct(
-		public bool     $includeDead,
-		public string   $entityType,
-		public ?int     $max,
-		protected array $exclude,
-		public ?Closure $filter
+		public bool     $includeDead = false,
+		public string   $entityType = Entity::class,
+		public ?int     $max = null,
+		protected array $exclude = [],
+		public ?Closure $filter = null,
+		public ?Closure $processor = null
 	) {
 		$this->setExclude($exclude);
+	}
+
+	public function setExclude(array $exclude): void {
+		$this->exclude = $exclude;
+		$this->exludeSet = array_flip($exclude);
 	}
 
 	public static function includeDead(bool $v): self {
@@ -35,7 +41,7 @@ class EntitySearchOption {
 	}
 
 	public static function default(): self {
-		return new self(false, Entity::class, null, [], null);
+		return new self();
 	}
 
 	public static function entityType(string $v): self {
@@ -48,6 +54,13 @@ class EntitySearchOption {
 	public static function filter(Closure $filter): self {
 		$i = self::default();
 		$i->filter = $filter;
+
+		return $i;
+	}
+
+	public static function processor(Closure $caster): self {
+		$i = self::default();
+		$i->processor = $caster;
 
 		return $i;
 	}
@@ -72,9 +85,8 @@ class EntitySearchOption {
 		return $i;
 	}
 
-	public function setExclude(array $exclude): void {
-		$this->exclude = $exclude;
-		$this->exludeSet = array_flip($exclude);
+	public function process(Entity $entity): mixed {
+		return $this->processor === null ? $entity : ($this->processor)($entity);
 	}
 
 	public function getExclude(): array {
