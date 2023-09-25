@@ -31,11 +31,6 @@ class MonsterPlayer implements MonsterBase {
 	}
 
 	public static function dispose(Player $player): void {
-		self::$map ??= new WeakMap();
-		$i = self::$map[$player] ?? null;
-		if (is_null($i)) {
-			return;
-		}
 	}
 
 	public static function get(Player $player): MonsterPlayer {
