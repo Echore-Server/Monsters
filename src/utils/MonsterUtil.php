@@ -13,7 +13,7 @@ use pocketmine\player\Player;
 class MonsterUtil {
 
 	public static function is(Entity $entity, bool $allowPlayer = true): bool {
-		return !is_null(self::cast($entity, $allowPlayer));
+		return self::cast($entity, $allowPlayer) !== null;
 	}
 
 	public static function cast(Entity $entity, bool $allowPlayer = true): ?MonsterBase {
