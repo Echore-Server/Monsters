@@ -147,8 +147,14 @@ class StateManager {
 		if ($this->disposed) {
 			throw new RuntimeException("state manager is already disposed");
 		}
+
+		if ($state->isDisposed()){
+			return;
+		}
+
 		unset($this->states[spl_object_hash($state)]);
 		unset($this->updatingStates[spl_object_hash($state)]);
+		unset($this->stateByClass[$state::class][spl_object_hash($state)]);
 
 		foreach ($this->actionStates as $action => $states) {
 			foreach ($states as $hash => $tstate) {
@@ -158,11 +164,11 @@ class StateManager {
 			}
 		}
 
+		$state->dispose();
+
 		foreach ($state->getRemoveHooks() as $hook) {
 			$hook($state);
 		}
-
-		$state->dispose();
 	}
 
 	public function dispose(): void {
@@ -195,8 +201,28 @@ class StateManager {
 		return count($this->getOf($class)) > 0;
 	}
 
+	/**
+	 * @template T of State
+	 * @param class-string<T> $class
+	 * @return T[]
+	 */
 	public function getOf(string $class): array {
 		return $this->stateByClass[$class] ?? [];
+	}
+
+	/**
+	 * @template T of State
+	 * @param class-string<T> $class
+	 * @return T|null
+	 */
+	public function getOneOf(string $class): mixed {
+		$states = $this->getOf($class);
+
+		if (count($states) === 0) {
+			return null;
+		}
+
+		return $states[array_key_first($states)];
 	}
 
 	/**

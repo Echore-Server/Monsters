@@ -35,11 +35,11 @@ abstract class State {
 	abstract public function onApply(): void;
 
 	public function conflicts(State $another): bool {
-		return $this->equals($another);
+		return false;
 	}
 
 	public function equals(State $another): bool {
-		return $this->entity === $another->getEntity() && self::class === $another::class;
+		return $this->entity === $another->getEntity() && static::class === $another::class;
 	}
 
 	/**

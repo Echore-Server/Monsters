@@ -33,7 +33,9 @@ class Motioner {
 		return $this->modifiers;
 	}
 
-	public function customAttack(EntityDamageByEntityEvent $source, Modifier $xz, Modifier $y, float $base = 0.4, ?Modifier $onGroundModifier = null): void {
+	public function customAttack(EntityDamageByEntityEvent $source, Modifier $xz = null, Modifier $y = null, float $base = 0.4, ?Modifier $onGroundModifier = null): void {
+		$xz ??= Modifier::default();
+		$y ??= Modifier::default();
 		$this->entity->attack($source);
 
 		$onGroundModifier ??= Modifier::default();

@@ -2,9 +2,8 @@
 
 namespace Lyrica0954\Monsters\entity;
 
+use Closure;
 use Lyrica0954\Monsters\entity\record\FloatPlayerRecord;
-use Lyrica0954\Monsters\entity\source\ContinuousDamageEvent;
-use Lyrica0954\Monsters\entity\source\InboundDamageModifierEvent;
 use Lyrica0954\Monsters\entity\state\StateManager;
 use pocketmine\entity\Entity;
 use pocketmine\entity\Living;
@@ -23,11 +22,20 @@ trait MonsterTrait {
 
 	protected ObjectSet $attackListeners;
 
+	protected ObjectSet $preAttackListeners;
+
 	/**
 	 * @return ObjectSet
 	 */
 	public function getAttackListeners(): ObjectSet {
 		return $this->attackListeners;
+	}
+
+	/**
+	 * @return ObjectSet<Closure(EntityDamageEvent): void>
+	 */
+	public function getPreAttackListeners(): ObjectSet {
+		return $this->preAttackListeners;
 	}
 
 	public function hitEntity(Entity $entity, float $range): void {
@@ -75,6 +83,10 @@ trait MonsterTrait {
 	 * @notHandler
 	 */
 	public function attack(EntityDamageEvent $source): void {
+		foreach ($this->preAttackListeners as $listener) {
+			($listener)($source);
+		}
+
 		parent::attack($source);
 
 		foreach ($this->attackListeners as $listener) {
@@ -93,6 +105,7 @@ trait MonsterTrait {
 		$this->motioner = new Motioner($this);
 		$this->inboundDamageRecord = new FloatPlayerRecord();
 		$this->attackListeners = new ObjectSet();
+		$this->preAttackListeners = new ObjectSet();
 	}
 
 	protected function onDispose(): void {

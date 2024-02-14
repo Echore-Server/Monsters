@@ -47,6 +47,17 @@ abstract class DurationState extends UpdatingState {
 	}
 
 	/**
+	 * @param int $remainTick
+	 */
+	public function setRemainTick(int $remainTick): void {
+		$this->remainTick = min($remainTick, $this->duration);
+
+		if ($this->remainTick <= 0){
+			$this->flagForRemove();
+		}
+	}
+
+	/**
 	 * @param int $duration
 	 */
 	public function setDuration(int $duration): void {

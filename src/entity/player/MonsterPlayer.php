@@ -9,6 +9,8 @@ use Lyrica0954\Monsters\entity\Motioner;
 use Lyrica0954\Monsters\entity\state\StateManager;
 use pocketmine\entity\Living;
 use pocketmine\player\Player;
+use pocketmine\utils\ObjectSet;
+use RuntimeException;
 use WeakMap;
 
 class MonsterPlayer implements MonsterBase {
@@ -72,5 +74,13 @@ class MonsterPlayer implements MonsterBase {
 	 */
 	public function getPlayer(): Player {
 		return $this->player;
+	}
+
+	public function getAttackListeners(): ObjectSet {
+		throw new RuntimeException("Not implemented");
+	}
+
+	public function getPreAttackListeners(): ObjectSet {
+		throw new RuntimeException("Not implemented");
 	}
 }

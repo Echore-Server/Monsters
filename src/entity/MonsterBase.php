@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Lyrica0954\Monsters\entity;
 
+use Closure;
 use Lyrica0954\Monsters\entity\state\StateManager;
 use pocketmine\entity\Living;
+use pocketmine\event\entity\EntityDamageEvent;
+use pocketmine\utils\ObjectSet;
 
 interface MonsterBase {
 
@@ -27,4 +30,13 @@ interface MonsterBase {
 	 * @return Living
 	 */
 	public function getEntity(): Living;
+
+	/**
+	 * @return ObjectSet<Closure(EntityDamageEvent): void>
+	 */
+	public function getAttackListeners(): ObjectSet;
+	/**
+	 * @return ObjectSet<Closure(EntityDamageEvent): void>
+	 */
+	public function getPreAttackListeners(): ObjectSet;
 }
