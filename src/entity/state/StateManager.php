@@ -7,6 +7,7 @@ namespace Lyrica0954\Monsters\entity\state;
 use Closure;
 use pocketmine\entity\Living;
 use pocketmine\utils\ObjectSet;
+use pocketmine\utils\ReversePriorityQueue;
 use RuntimeException;
 
 /**
@@ -36,6 +37,11 @@ class StateManager {
 	 */
 	protected array $stateByClass;
 
+	/**
+	 * @var ReversePriorityQueue<int, SchedulingState>
+	 */
+	protected ReversePriorityQueue $scheduledStates;
+
 	protected bool $disposed;
 
 	protected ObjectSet $applyListeners;
@@ -45,12 +51,16 @@ class StateManager {
 	 */
 	protected array $applyHooks;
 
+	protected int $lastUpdatedTick;
+
 	public function __construct(Living $entity) {
 		$this->entity = $entity;
 		$this->states = [];
 		$this->actionStates = [];
 		$this->updatingStates = [];
 		$this->stateByClass = [];
+		$this->lastUpdatedTick = $entity->getWorld()->getServer()->getTick();
+		$this->scheduledStates = new ReversePriorityQueue();
 		$this->disposed = false;
 		$this->applyHooks = [];
 		$this->applyListeners = new ObjectSet();
@@ -88,10 +98,27 @@ class StateManager {
 			return false;
 		}
 
+		$removed = 0;
+
+		foreach ($conflicts as $k => $conflictState) {
+			if ($removeConflicting && $state->shouldRemove($conflictState)) {
+				$removed++;
+			}
+		}
+
+		if (count($conflicts) > $removed) {
+			return false;
+		}
+
 		foreach ($conflicts as $conflictState) {
 			$this->remove($conflictState);
 		}
 
+		if ($state instanceof SchedulingState) {
+			$this->scheduleState($state, $state->getNextRunTick());
+		}
+
+		$state->setApplied(true);
 		$state->onApply();
 
 		$this->states[spl_object_hash($state)] = $state;
@@ -111,6 +138,13 @@ class StateManager {
 		}
 
 		return true;
+	}
+
+	/**
+	 * @return State[]
+	 */
+	public function getAll(): array {
+		return $this->states;
 	}
 
 	/**
@@ -148,7 +182,7 @@ class StateManager {
 			throw new RuntimeException("state manager is already disposed");
 		}
 
-		if ($state->isDisposed()){
+		if ($state->isDisposed()) {
 			return;
 		}
 
@@ -179,6 +213,41 @@ class StateManager {
 
 	public function removeAll(): void {
 		foreach ($this->states as $state) {
+			$this->remove($state);
+		}
+	}
+
+	/**
+	 * @param SchedulingState $state
+	 * @param int $tick
+	 * @return void
+	 * @internal
+	 */
+	public function scheduleState(SchedulingState $state, int $tick): void {
+		$this->scheduledStates->insert($state, $tick);
+		$state->setInternalNextRunTick($tick);
+
+		$state->setUpdateMediator(function() use ($state): void {
+			$this->onScheduleStateUpdate($state);
+		});
+	}
+
+	public function onScheduleStateUpdate(SchedulingState $state): void {
+		$currentTick = $this->entity->getWorld()->getServer()->getTick();
+		if ($state->getNextRunTick() <= $currentTick) {
+			$this->notify($state);
+		}
+	}
+
+	protected function notify(SchedulingState $state): void {
+		$currentTick = $this->entity->getWorld()->getServer()->getTick();
+		$state->onNotify($currentTick);
+
+		if ($state->getRepeatingTick() !== null) {
+			$state->setNextRunTick($state->getNextRunTick() + $state->getRepeatingTick());
+			$state->setInternalNextRunTick($state->getNextRunTick());
+			$this->scheduledStates->insert($state, $state->getNextRunTick() + $state->getRepeatingTick());
+		} else {
 			$this->remove($state);
 		}
 	}
@@ -265,18 +334,32 @@ class StateManager {
 	}
 
 	public function update(int $tickDiff = 1): void {
+		$currentTick = $this->entity->getWorld()->getServer()->getTick();
+
+		while (!$this->scheduledStates->isEmpty() && $this->scheduledStates->current()->getInternalNextRunTick() <= $currentTick) {
+			$state = $this->scheduledStates->extract();
+			if ($state->getInternalNextRunTick() < $state->getNextRunTick()) {
+				$this->scheduledStates->insert($state, $state->getNextRunTick());
+				$state->setInternalNextRunTick($state->getNextRunTick());
+			} else {
+				$this->notify($state);
+			}
+		}
+
 		foreach ($this->updatingStates as $state) {
 			if ($state->isFlaggedForRemove()) {
 				$this->remove($state);
 				continue;
 			}
 
-			if (!$state->isActive()) {
+			if (!$state->isApplied()) {
 				continue;
 			}
 
 			$state->baseTick($tickDiff);
 		}
+
+		$this->lastUpdatedTick = $this->entity->getWorld()->getServer()->getTick();
 	}
 
 	protected function addToActions(State $state): void {

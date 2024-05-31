@@ -23,7 +23,7 @@ abstract class UpdatingState extends State {
 	}
 
 	public function baseTick(int $tickDiff = 1): void {
-		if (!$this->active) {
+		if (!$this->applied) {
 			throw new RuntimeException("cant update while deactivated");
 		}
 

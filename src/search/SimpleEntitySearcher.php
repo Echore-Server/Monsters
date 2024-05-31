@@ -163,8 +163,8 @@ class SimpleEntitySearcher implements EntitySearcher {
 		foreach ($this->getAreaEntities($position, $maxDistance, $option) as $entity) {
 			$dist = $this->algo->getDistance()->distanceSquaredBoundingBoxIfSupported($entity->getBoundingBox(), $position);
 
-			if ($dist < $d && ($processed = $option->process($entity)) !== null) {
-				$e = $processed;
+			if ($dist < $d) {
+				$e = $entity;
 				$d = $dist;
 			}
 		}

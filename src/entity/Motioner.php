@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace Lyrica0954\Monsters\entity;
 
 use Echore\Stargazer\Modifier;
+use Echore\Stargazer\ModifierSet;
 use Lyrica0954\Monsters\entity\source\MonsterMotionEvent;
 use Lyrica0954\Monsters\utils\MotionModifiers;
 use Lyrica0954\Monsters\utils\ValueModifier;
 use pocketmine\entity\Attribute;
 use pocketmine\entity\Entity;
+use pocketmine\event\entity\EntityDamageByChildEntityEvent;
 use pocketmine\event\entity\EntityDamageByEntityEvent;
 use pocketmine\math\Vector3;
 
@@ -20,7 +22,7 @@ class Motioner {
 	protected MotionModifiers $modifiers;
 
 	public function __construct(Entity $entity) {
-		$this->modifiers = new MotionModifiers();
+		$this->modifiers = new MotionModifiers(ModifierSet::MODE_MULTIPLICATION);
 		$this->entity = $entity;
 	}
 
@@ -33,7 +35,7 @@ class Motioner {
 		return $this->modifiers;
 	}
 
-	public function customAttack(EntityDamageByEntityEvent $source, Modifier $xz = null, Modifier $y = null, float $base = 0.4, ?Modifier $onGroundModifier = null): void {
+	public function customAttack(EntityDamageByEntityEvent $source, Modifier $xz = null, Modifier $y = null, ?Modifier $onGroundModifier = null): void {
 		$xz ??= Modifier::default();
 		$y ??= Modifier::default();
 		$this->entity->attack($source);
@@ -42,14 +44,23 @@ class Motioner {
 
 		if (!$source->isCancelled()) {
 			if ($this->entity->isOnGround()) {
-				$xz = $xz->merge($onGroundModifier);
-				$y = $y->merge($onGroundModifier);
+				$xz = Modifier::multiplier($xz->multiplier * $onGroundModifier->multiplier);
+				$y = Modifier::multiplier($y->multiplier * $onGroundModifier->multiplier);
 			}
-			$this->knockBack($source->getDamager()->getPosition(), $xz, $y, $base);
+			$damager = $source->getDamager();
+
+			if ($source instanceof EntityDamageByChildEntityEvent){
+				$damager = $source->getChild();
+			}
+
+			$this->knockBack($damager->getPosition(), $xz, $y, $source->getKnockBack());
 		}
 	}
 
 	public function knockBack(Vector3 $from, Modifier $xz, Modifier $y, float $base = 0.4): void {
+		if ($base <= 0.0){
+			return;
+		}
 		$motion = $this->getKnockBack($from, $xz, $y, $base);
 
 		$this->set($motion, MonsterMotionEvent::SOURCE_SIMULATED_KNOCKBACK);

@@ -5,41 +5,21 @@ declare(strict_types=1);
 namespace Lyrica0954\Monsters\entity\state;
 
 use pocketmine\entity\Living;
+use RuntimeException;
 
-abstract class DurationState extends UpdatingState {
+abstract class DurationState extends SchedulingState {
 
 	protected int $duration;
 
-	protected int $remainTick;
-
-	protected bool $useBaseTick;
-
 	public function __construct(Living $entity, int $duration) {
-		parent::__construct($entity);
+		parent::__construct($entity, $entity->getWorld()->getServer()->getTick() + $duration, null);
 		$this->duration = $duration;
-		$this->remainTick = 0;
-		$this->useBaseTick = $duration > 0;
 	}
 
-	public function useBaseTick(): bool {
-		return $this->useBaseTick;
-	}
-
-	public function onUpdate(int $tickDiff = 1): void {
-		$this->remainTick -= $tickDiff;
-
-		if ($this->remainTick <= 0) {
-			$this->flagForRemove();
-		}
-	}
-
-	public function onApply(): void {
-		$this->remainTick = $this->duration;
+	public function onNotify(int $currentTick): void {
 	}
 
 	/**
-	 * Get the value of duration
-	 *
 	 * @return int
 	 */
 	public function getDuration(): int {
@@ -47,30 +27,25 @@ abstract class DurationState extends UpdatingState {
 	}
 
 	/**
-	 * @param int $remainTick
-	 */
-	public function setRemainTick(int $remainTick): void {
-		$this->remainTick = min($remainTick, $this->duration);
-
-		if ($this->remainTick <= 0){
-			$this->flagForRemove();
-		}
-	}
-
-	/**
 	 * @param int $duration
 	 */
 	public function setDuration(int $duration): void {
 		$this->duration = $duration;
-		$this->useBaseTick = $duration > 0;
 	}
 
-	/**
-	 * Get the value of remainTick
-	 *
-	 * @return int
-	 */
-	public function getRemainTick(): int {
-		return $this->remainTick;
+	public function getRemainTick(?int $currentTick = null): int {
+		return $this->nextRunTick - ($currentTick ?? $this->entity->getWorld()->getServer()->getTick());
+	}
+
+	public function setRemainTick(int $remainTick, ?int $currentTick = null): void {
+		$this->setNextRunTick(($currentTick ?? $this->entity->getWorld()->getServer()->getTick()) + $remainTick);
+	}
+
+	public function flagForRemove(): void {
+		if (!$this->applied){
+			throw new RuntimeException("Not applied");
+		}
+		$this->repeatingTick = null;
+		$this->setNextRunTick(0);
 	}
 }

@@ -12,7 +12,7 @@ abstract class State {
 
 	protected Living $entity;
 
-	protected bool $active;
+	protected bool $applied;
 
 	protected bool $disposed;
 
@@ -20,7 +20,7 @@ abstract class State {
 
 	public function __construct(Living $entity) {
 		$this->entity = $entity;
-		$this->active = false;
+		$this->applied = false;
 		$this->disposed = false;
 		$this->removeHooks = new ObjectSet();
 	}
@@ -38,6 +38,10 @@ abstract class State {
 		return false;
 	}
 
+	public function shouldRemove(State $another): bool {
+		return false;
+	}
+
 	public function equals(State $another): bool {
 		return $this->entity === $another->getEntity() && static::class === $another::class;
 	}
@@ -52,10 +56,11 @@ abstract class State {
 	}
 
 	public function dispose(): void {
-		if ($this->active) {
+		if ($this->applied) {
 			$this->onRemove();
 		}
 
+		$this->applied = false;
 		$this->disposed = true;
 	}
 
@@ -68,13 +73,21 @@ abstract class State {
 	public function getRemoveHooks(): ObjectSet {
 		return $this->removeHooks;
 	}
+
 	/**
 	 * Get the value of active
 	 *
 	 * @return bool
 	 */
-	public function isActive(): bool {
-		return $this->active;
+	public function isApplied(): bool {
+		return $this->applied;
+	}
+
+	/**
+	 * @param bool $applied
+	 */
+	public function setApplied(bool $applied): void {
+		$this->applied = $applied;
 	}
 
 	/**

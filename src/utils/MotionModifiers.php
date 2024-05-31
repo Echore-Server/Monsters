@@ -6,24 +6,20 @@ namespace Lyrica0954\Monsters\utils;
 
 use Closure;
 use Echore\Stargazer\ModifiableValue;
-use Echore\Stargazer\ModifierApplier;
-use Echore\Stargazer\ModifierApplierTypes;
+use Echore\Stargazer\ModifierSet;
 use pocketmine\math\Vector3;
 use pocketmine\utils\ObjectSet;
 use pocketmine\utils\Utils;
 
 class MotionModifiers {
 
-	public ObjectSet $xz;
+	public ModifierSet $xz;
 
-	public ObjectSet $y;
+	public ModifierSet $y;
 
-	protected ModifierApplier $applier;
-
-	public function __construct() {
-		$this->xz = new ObjectSet();
-		$this->y = new ObjectSet();
-		$this->applier = ModifierApplierTypes::default();
+	public function __construct(int $mode) {
+		$this->xz = new ModifierSet($mode);
+		$this->y = new ModifierSet($mode);
 	}
 
 	/**
@@ -39,9 +35,9 @@ class MotionModifiers {
 	}
 
 	public function apply(Vector3 $v): Vector3 {
-		$v->x = $this->applier->apply($v->x, $this->xz->toArray());
-		$v->y = $this->applier->apply($v->y, $this->y->toArray());
-		$v->z = $this->applier->apply($v->z, $this->xz->toArray());
+		$v->x = $v->x * $this->xz->getResult()->multiplier;
+		$v->y = $v->y * $this->y->getResult()->multiplier;
+		$v->z = $v->z * $this->xz->getResult()->multiplier;
 
 		return $v;
 	}
