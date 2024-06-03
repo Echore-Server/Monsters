@@ -28,7 +28,7 @@ class MonsterPlayer implements MonsterBase {
 
 	public function __construct(Player $player) {
 		$this->player = $player;
-		$this->states = new StateManager($player);
+		$this->states = new StateManager($this);
 		$this->motioner = new Motioner($player);
 	}
 

@@ -71,10 +71,6 @@ trait MonsterTrait {
 		return $this->motioner;
 	}
 
-	public function getEntity(): Living {
-		return $this;
-	}
-
 	/**
 	 * @param EntityDamageEvent $source
 	 *
@@ -101,11 +97,18 @@ trait MonsterTrait {
 	}
 
 	protected function initMonster(): void {
+		assert($this instanceof MonsterBase);
 		$this->states = new StateManager($this);
-		$this->motioner = new Motioner($this);
+		$this->motioner = new Motioner($this->getEntity());
 		$this->inboundDamageRecord = new FloatPlayerRecord();
 		$this->attackListeners = new ObjectSet();
 		$this->preAttackListeners = new ObjectSet();
+	}
+
+	public function getEntity(): Living {
+		assert($this instanceof Living);
+
+		return $this;
 	}
 
 	protected function onDispose(): void {
@@ -115,6 +118,7 @@ trait MonsterTrait {
 	}
 
 	protected function entityBaseTick(int $tickDiff = 1): bool {
+		assert($this instanceof Living);
 		$hasUpdate = parent::entityBaseTick($tickDiff);
 
 		if ($this->isAlive() && !$this->isFlaggedForDespawn()) {
