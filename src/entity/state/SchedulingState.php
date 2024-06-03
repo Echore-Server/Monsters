@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace Lyrica0954\Monsters\entity\state;
 
 use Closure;
-use pocketmine\entity\Living;
+use Lyrica0954\Monsters\entity\MonsterBase;
 use RuntimeException;
 
 abstract class SchedulingState extends State {
 
 	protected int $firstRunTick;
-	
+
 	protected ?int $repeatingTick;
 
 	protected int $nextRunTick;
@@ -20,8 +20,8 @@ abstract class SchedulingState extends State {
 
 	private ?int $internalNextRunTick;
 
-	public function __construct(Living $entity, int $firstRunTick, ?int $repeatingTick) {
-		parent::__construct($entity);
+	public function __construct(MonsterBase $monster, int $firstRunTick, ?int $repeatingTick) {
+		parent::__construct($monster);
 		$this->firstRunTick = $firstRunTick;
 		$this->repeatingTick = $repeatingTick;
 		$this->nextRunTick = $firstRunTick;

@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Lyrica0954\Monsters\entity\state;
 
-use pocketmine\entity\Entity;
+use Lyrica0954\Monsters\entity\MonsterBase;
 use pocketmine\entity\Living;
 use pocketmine\utils\ObjectSet;
 
 abstract class State {
+
+	protected MonsterBase $monster;
 
 	protected Living $entity;
 
@@ -18,18 +20,28 @@ abstract class State {
 
 	protected ObjectSet $removeHooks;
 
-	public function __construct(Living $entity) {
-		$this->entity = $entity;
+	public function __construct(MonsterBase $monster) {
+		$this->monster = $monster;
+		$this->entity = $monster->getEntity();
 		$this->applied = false;
 		$this->disposed = false;
 		$this->removeHooks = new ObjectSet();
 	}
 
-	public function useHitEntity(): bool {
-		return false;
+	/**
+	 * Get the value of entity
+	 *
+	 * @return Living
+	 */
+	public function getEntity(): Living {
+		return $this->entity;
 	}
 
-	public function hitEntity(Entity $entity, float $range): void {
+	/**
+	 * @return MonsterBase
+	 */
+	public function getMonster(): MonsterBase {
+		return $this->monster;
 	}
 
 	abstract public function onApply(): void;
@@ -44,15 +56,6 @@ abstract class State {
 
 	public function equals(State $another): bool {
 		return $this->entity === $another->getEntity() && static::class === $another::class;
-	}
-
-	/**
-	 * Get the value of entity
-	 *
-	 * @return Living
-	 */
-	public function getEntity(): Living {
-		return $this->entity;
 	}
 
 	public function dispose(): void {

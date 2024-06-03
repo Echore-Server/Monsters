@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Lyrica0954\Monsters\entity\state;
 
-use pocketmine\entity\Living;
+use Lyrica0954\Monsters\entity\MonsterBase;
 use RuntimeException;
 
 abstract class DurationState extends SchedulingState {
 
 	protected int $duration;
 
-	public function __construct(Living $entity, int $duration) {
-		parent::__construct($entity, $entity->getWorld()->getServer()->getTick() + $duration, null);
+	public function __construct(MonsterBase $monster, int $duration) {
+		parent::__construct($monster, $monster->getEntity()->getWorld()->getServer()->getTick() + $duration, null);
 		$this->duration = $duration;
 	}
 
@@ -42,7 +42,7 @@ abstract class DurationState extends SchedulingState {
 	}
 
 	public function flagForRemove(): void {
-		if (!$this->applied){
+		if (!$this->applied) {
 			throw new RuntimeException("Not applied");
 		}
 		$this->repeatingTick = null;

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Lyrica0954\Monsters\entity\state;
 
 use Closure;
+use Lyrica0954\Monsters\entity\MonsterBase;
 use pocketmine\entity\Living;
 use pocketmine\utils\ObjectSet;
 use pocketmine\utils\ReversePriorityQueue;
@@ -15,7 +16,7 @@ use RuntimeException;
  */
 class StateManager {
 
-	protected Living $entity;
+	protected MonsterBase $monster;
 
 	/**
 	 * @var State[]
@@ -53,17 +54,33 @@ class StateManager {
 
 	protected int $lastUpdatedTick;
 
-	public function __construct(Living $entity) {
-		$this->entity = $entity;
+	public function __construct(MonsterBase $monster) {
+		$this->monster = $monster;
 		$this->states = [];
 		$this->actionStates = [];
 		$this->updatingStates = [];
 		$this->stateByClass = [];
-		$this->lastUpdatedTick = $entity->getWorld()->getServer()->getTick();
+		$this->lastUpdatedTick = $this->monster->getEntity()->getWorld()->getServer()->getTick();
 		$this->scheduledStates = new ReversePriorityQueue();
 		$this->disposed = false;
 		$this->applyHooks = [];
 		$this->applyListeners = new ObjectSet();
+	}
+
+	/**
+	 * Get the value of entity
+	 *
+	 * @return Living
+	 */
+	public function getEntity(): Living {
+		return $this->monster->getEntity();
+	}
+
+	/**
+	 * @return MonsterBase
+	 */
+	public function getMonster(): MonsterBase {
+		return $this->monster;
 	}
 
 	/**
@@ -84,7 +101,7 @@ class StateManager {
 			throw new RuntimeException("state manager is already disposed");
 		}
 
-		if ($this->entity !== $state->getEntity()) {
+		if ($this->getEntity() !== $state->getEntity()) {
 			throw new RuntimeException("(manager <-> state) entity does not match");
 		}
 
@@ -138,22 +155,6 @@ class StateManager {
 		}
 
 		return true;
-	}
-
-	/**
-	 * @return State[]
-	 */
-	public function getAll(): array {
-		return $this->states;
-	}
-
-	/**
-	 * Get the value of entity
-	 *
-	 * @return Living
-	 */
-	public function getEntity(): Living {
-		return $this->entity;
 	}
 
 	/**
@@ -233,14 +234,14 @@ class StateManager {
 	}
 
 	public function onScheduleStateUpdate(SchedulingState $state): void {
-		$currentTick = $this->entity->getWorld()->getServer()->getTick();
+		$currentTick = $this->monster->getEntity()->getWorld()->getServer()->getTick();
 		if ($state->getNextRunTick() <= $currentTick) {
 			$this->notify($state);
 		}
 	}
 
 	protected function notify(SchedulingState $state): void {
-		$currentTick = $this->entity->getWorld()->getServer()->getTick();
+		$currentTick = $this->monster->getEntity()->getWorld()->getServer()->getTick();
 		$state->onNotify($currentTick);
 
 		if ($state->getRepeatingTick() !== null) {
@@ -254,6 +255,13 @@ class StateManager {
 
 	public function getApplyHooks(string $stateClass): ObjectSet {
 		return $this->applyHooks[$stateClass] ??= new ObjectSet();
+	}
+
+	/**
+	 * @return State[]
+	 */
+	public function getAll(): array {
+		return $this->states;
 	}
 
 	public function removeAllOf(string $class): array {
@@ -334,7 +342,7 @@ class StateManager {
 	}
 
 	public function update(int $tickDiff = 1): void {
-		$currentTick = $this->entity->getWorld()->getServer()->getTick();
+		$currentTick = $this->monster->getEntity()->getWorld()->getServer()->getTick();
 
 		while (!$this->scheduledStates->isEmpty() && $this->scheduledStates->current()->getInternalNextRunTick() <= $currentTick) {
 			$state = $this->scheduledStates->extract();
@@ -359,12 +367,6 @@ class StateManager {
 			$state->baseTick($tickDiff);
 		}
 
-		$this->lastUpdatedTick = $this->entity->getWorld()->getServer()->getTick();
-	}
-
-	protected function addToActions(State $state): void {
-		if ($state->useHitEntity()) {
-			$this->actionStates["hitEntity"][spl_object_hash($state)] = $state;
-		}
+		$this->lastUpdatedTick = $this->monster->getEntity()->getWorld()->getServer()->getTick();
 	}
 }
