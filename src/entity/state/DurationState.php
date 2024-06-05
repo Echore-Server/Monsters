@@ -42,6 +42,9 @@ abstract class DurationState extends SchedulingState {
 	}
 
 	public function flagForRemove(): void {
+		if ($this->disposed){
+			return;
+		}
 		if (!$this->applied) {
 			throw new RuntimeException("Not applied");
 		}
