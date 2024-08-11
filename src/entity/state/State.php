@@ -46,14 +46,6 @@ abstract class State {
 
 	abstract public function onApply(): void;
 
-	public function conflicts(State $another): bool {
-		return false;
-	}
-
-	public function shouldRemove(State $another): bool {
-		return false;
-	}
-
 	public function equals(State $another): bool {
 		return $this->entity === $another->getEntity() && static::class === $another::class;
 	}

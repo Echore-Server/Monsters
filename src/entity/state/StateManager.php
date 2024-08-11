@@ -92,11 +92,10 @@ class StateManager {
 
 	/**
 	 * @param State $state
-	 * @param bool $removeConflicting
 	 *
 	 * @return bool
 	 */
-	public function apply(State $state, bool $removeConflicting = false): bool {
+	public function apply(State $state): bool {
 		if ($this->disposed) {
 			throw new RuntimeException("state manager is already disposed");
 		}
@@ -107,28 +106,6 @@ class StateManager {
 
 		if ($state->isDisposed()) {
 			throw new RuntimeException("the state is already disposed");
-		}
-
-		$conflicts = $this->listConflict($state);
-
-		if (count($conflicts) > 0 && !$removeConflicting) {
-			return false;
-		}
-
-		$removed = 0;
-
-		foreach ($conflicts as $k => $conflictState) {
-			if ($removeConflicting && $state->shouldRemove($conflictState)) {
-				$removed++;
-			}
-		}
-
-		if (count($conflicts) > $removed) {
-			return false;
-		}
-
-		foreach ($conflicts as $conflictState) {
-			$this->remove($conflictState);
 		}
 
 		if ($state instanceof SchedulingState) {
@@ -166,16 +143,44 @@ class StateManager {
 		return $this->disposed;
 	}
 
-	public function listConflict(State $state): array {
-		$conflicts = [];
+	/**
+	 * @param SchedulingState $state
+	 * @param int $tick
+	 * @return void
+	 * @internal
+	 */
+	public function scheduleState(SchedulingState $state, int $tick): void {
+		$this->scheduledStates->insert($state, $tick);
+		$state->setInternalNextRunTick($tick);
 
-		foreach ($this->states as $another) {
-			if ($state->conflicts($another)) {
-				$conflicts[] = $another;
-			}
+		$state->setUpdateMediator(function() use ($state): void {
+			$this->onScheduleStateUpdate($state);
+		});
+	}
+
+	public function onScheduleStateUpdate(SchedulingState $state): void {
+		$currentTick = $this->monster->getEntity()->getWorld()->getServer()->getTick();
+		if ($state->getNextRunTick() <= $currentTick) {
+			$this->notify($state);
 		}
 
-		return $conflicts;
+		if ($state->getNextRunTick() < $state->getInternalNextRunTick()) {
+			$this->scheduledStates->insert($state, $state->getNextRunTick());
+			$state->setInternalNextRunTick($state->getNextRunTick());
+		}
+	}
+
+	protected function notify(SchedulingState $state): void {
+		$currentTick = $this->monster->getEntity()->getWorld()->getServer()->getTick();
+		$state->onNotify($currentTick);
+
+		if ($state->getRepeatingTick() !== null) {
+			$state->setNextRunTick($state->getNextRunTick() + $state->getRepeatingTick());
+			$state->setInternalNextRunTick($state->getNextRunTick());
+			$this->scheduledStates->insert($state, $state->getNextRunTick() + $state->getRepeatingTick());
+		} else {
+			$this->remove($state);
+		}
 	}
 
 	public function remove(State $state): void {
@@ -214,41 +219,6 @@ class StateManager {
 
 	public function removeAll(): void {
 		foreach ($this->states as $state) {
-			$this->remove($state);
-		}
-	}
-
-	/**
-	 * @param SchedulingState $state
-	 * @param int $tick
-	 * @return void
-	 * @internal
-	 */
-	public function scheduleState(SchedulingState $state, int $tick): void {
-		$this->scheduledStates->insert($state, $tick);
-		$state->setInternalNextRunTick($tick);
-
-		$state->setUpdateMediator(function() use ($state): void {
-			$this->onScheduleStateUpdate($state);
-		});
-	}
-
-	public function onScheduleStateUpdate(SchedulingState $state): void {
-		$currentTick = $this->monster->getEntity()->getWorld()->getServer()->getTick();
-		if ($state->getNextRunTick() <= $currentTick) {
-			$this->notify($state);
-		}
-	}
-
-	protected function notify(SchedulingState $state): void {
-		$currentTick = $this->monster->getEntity()->getWorld()->getServer()->getTick();
-		$state->onNotify($currentTick);
-
-		if ($state->getRepeatingTick() !== null) {
-			$state->setNextRunTick($state->getNextRunTick() + $state->getRepeatingTick());
-			$state->setInternalNextRunTick($state->getNextRunTick());
-			$this->scheduledStates->insert($state, $state->getNextRunTick() + $state->getRepeatingTick());
-		} else {
 			$this->remove($state);
 		}
 	}
@@ -346,6 +316,11 @@ class StateManager {
 
 		while (!$this->scheduledStates->isEmpty() && $this->scheduledStates->current()->getInternalNextRunTick() <= $currentTick) {
 			$state = $this->scheduledStates->extract();
+
+			if ($state->isDisposed()) {
+				continue;
+			}
+
 			if ($state->getInternalNextRunTick() < $state->getNextRunTick()) {
 				$this->scheduledStates->insert($state, $state->getNextRunTick());
 				$state->setInternalNextRunTick($state->getNextRunTick());

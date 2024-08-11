@@ -51,9 +51,12 @@ abstract class SchedulingState extends State {
 	 * @param int $nextRunTick
 	 */
 	public function setNextRunTick(int $nextRunTick): void {
+		$updated = $this->nextRunTick !== $nextRunTick;
 		$this->nextRunTick = $nextRunTick;
 
-		$this->onScheduleChanged();
+		if ($updated) {
+			$this->onScheduleChanged();
+		}
 	}
 
 	protected function onScheduleChanged(): void {

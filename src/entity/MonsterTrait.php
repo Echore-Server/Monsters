@@ -96,6 +96,11 @@ trait MonsterTrait {
 		}
 	}
 
+	protected function onDispose(): void {
+		$this->states->dispose();
+		parent::onDispose();
+	}
+
 	protected function initMonster(): void {
 		assert($this instanceof MonsterBase);
 		$this->states = new StateManager($this);
@@ -111,12 +116,6 @@ trait MonsterTrait {
 		return $this;
 	}
 
-	protected function onDispose(): void {
-		parent::onDispose();
-
-		$this->states->dispose();
-	}
-
 	protected function entityBaseTick(int $tickDiff = 1): bool {
 		assert($this instanceof Living);
 		$hasUpdate = parent::entityBaseTick($tickDiff);
@@ -126,5 +125,10 @@ trait MonsterTrait {
 		}
 
 		return $hasUpdate;
+	}
+
+	protected function destroyCycles(): void {
+		parent::destroyCycles();
+		unset($this->motioner, $this->states);
 	}
 }
