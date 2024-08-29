@@ -3,20 +3,15 @@
 namespace Lyrica0954\Monsters\entity;
 
 use Closure;
-use Lyrica0954\Monsters\entity\record\FloatPlayerRecord;
 use Lyrica0954\Monsters\entity\state\StateManager;
 use pocketmine\entity\Entity;
 use pocketmine\entity\Living;
-use pocketmine\event\entity\EntityDamageByEntityEvent;
 use pocketmine\event\entity\EntityDamageEvent;
-use pocketmine\player\Player;
 use pocketmine\utils\ObjectSet;
 
 trait MonsterTrait {
 
 	protected StateManager $states;
-
-	protected FloatPlayerRecord $inboundDamageRecord;
 
 	protected Motioner $motioner;
 
@@ -42,15 +37,6 @@ trait MonsterTrait {
 		parent::hitEntity($entity, $range);
 
 		$this->states->action("hitEntity");
-	}
-
-	/**
-	 * Get the value of inboundDamageRecord
-	 *
-	 * @return FloatPlayerRecord
-	 */
-	public function getInboundDamageRecord(): FloatPlayerRecord {
-		return $this->inboundDamageRecord;
 	}
 
 	/**
@@ -88,12 +74,6 @@ trait MonsterTrait {
 		foreach ($this->attackListeners as $listener) {
 			($listener)($source);
 		}
-
-		if ($source instanceof EntityDamageByEntityEvent) {
-			if (($damager = $source->getDamager()) instanceof Player) {
-				$this->inboundDamageRecord->add($damager, $source->getFinalDamage());
-			}
-		}
 	}
 
 	protected function onDispose(): void {
@@ -105,7 +85,6 @@ trait MonsterTrait {
 		assert($this instanceof MonsterBase);
 		$this->states = new StateManager($this);
 		$this->motioner = new Motioner($this->getEntity());
-		$this->inboundDamageRecord = new FloatPlayerRecord();
 		$this->attackListeners = new ObjectSet();
 		$this->preAttackListeners = new ObjectSet();
 	}

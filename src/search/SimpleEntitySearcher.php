@@ -207,7 +207,7 @@ class SimpleEntitySearcher implements EntitySearcher {
 	public function getInsideOfTriangle(TriangleShape $shape, World $world, ?EntitySearchOption $option = null): array {
 		// 外接円を求めてもよかった
 		$v = sqrt(max($shape->a->lengthSquared(), $shape->b->lengthSquared(), $shape->c->lengthSquared()));
-		$v *= 1.1; // 範囲内になかったら困るから少し拡大したろ (;-;)
+		$v *= 1.1; // 範囲内になかったら困るから少し拡大したろ
 
 		$center = $shape->a->addVector($shape->b)->addVector($shape->c)->divide(3);
 		$option ??= EntitySearchOption::default();
