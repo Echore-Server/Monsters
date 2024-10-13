@@ -8,7 +8,6 @@ use Echore\Stargazer\Modifier;
 use Echore\Stargazer\ModifierSet;
 use Lyrica0954\Monsters\entity\source\MonsterMotionEvent;
 use Lyrica0954\Monsters\utils\MotionModifiers;
-use Lyrica0954\Monsters\utils\ValueModifier;
 use pocketmine\entity\Attribute;
 use pocketmine\entity\Entity;
 use pocketmine\event\entity\EntityDamageByChildEntityEvent;
@@ -24,6 +23,7 @@ class Motioner {
 	public function __construct(Entity $entity) {
 		$this->modifiers = new MotionModifiers(ModifierSet::MODE_MULTIPLICATION);
 		$this->entity = $entity;
+		$this->entity->getAttributeMap()->get(Attribute::KNOCKBACK_RESISTANCE)->setValue(1.0);
 	}
 
 	/**
@@ -40,6 +40,7 @@ class Motioner {
 		$y ??= Modifier::default();
 		$this->entity->attack($source);
 
+		$kb = $source->getKnockBack();
 		$onGroundModifier ??= Modifier::default();
 
 		if (!$source->isCancelled()) {
@@ -49,21 +50,14 @@ class Motioner {
 			}
 			$damager = $source->getDamager();
 
-			if ($source instanceof EntityDamageByChildEntityEvent){
-				$damager = $source->getChild();
+			if ($source instanceof EntityDamageByChildEntityEvent) {
+				$damager = $source->getChild() ?? $source->getDamager();
 			}
 
-			$this->knockBack($damager->getPosition(), $xz, $y, $source->getKnockBack());
+			if ($damager !== null && $damager->isAlive() && !$damager->isClosed() && !$damager->isFlaggedForDespawn()) {
+				$this->knockBack($damager->getPosition(), $xz, $y, $kb);
+			}
 		}
-	}
-
-	public function knockBack(Vector3 $from, Modifier $xz, Modifier $y, float $base = 0.4): void {
-		if ($base <= 0.0){
-			return;
-		}
-		$motion = $this->getKnockBack($from, $xz, $y, $base);
-
-		$this->set($motion, MonsterMotionEvent::SOURCE_SIMULATED_KNOCKBACK);
 	}
 
 	public function getKnockBack(Vector3 $from, Modifier $xz, Modifier $y, float $base = 0.4): Vector3 {
@@ -87,26 +81,28 @@ class Motioner {
 		if ($f <= 0) {
 			return new Vector3(0, 0, 0);
 		}
-		if (mt_rand() / mt_getrandmax() > ($origin->getAttributeMap()->get(Attribute::KNOCKBACK_RESISTANCE)?->getValue() ?? 0.0)) {
-			$f = 1 / $f;
-
-			$motion = clone $origin->getMotion();
-
-			$motion->x /= 2;
-			$motion->y /= 2;
-			$motion->z /= 2;
-			$motion->x += $x * $f * $base;
-			$motion->y += $base;
-			$motion->z += $z * $f * $base;
-
-			if ($motion->y > $base) {
-				$motion->y = $base;
-			}
-
-			return $motion;
-		} else {
-			return new Vector3(0, 0, 0);
+		$f = 1 / $f;
+		$motion = clone $origin->getMotion();
+		$motion->x /= 2;
+		$motion->y /= 2;
+		$motion->z /= 2;
+		$motion->x += $x * $f * $base;
+		$motion->y += $base;
+		$motion->z += $z * $f * $base;
+		if ($motion->y > $base) {
+			$motion->y = $base;
 		}
+
+		return $motion;
+	}
+
+	public function knockBack(Vector3 $from, Modifier $xz, Modifier $y, float $base = 0.4): void {
+		if ($base <= 0.0) {
+			return;
+		}
+		$motion = $this->getKnockBack($from, $xz, $y, $base);
+
+		$this->set($motion, MonsterMotionEvent::SOURCE_SIMULATED_KNOCKBACK);
 	}
 
 	public function set(Vector3 $motion, int $source = MonsterMotionEvent::SOURCE_UNKNOWN): void {

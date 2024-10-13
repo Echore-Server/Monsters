@@ -62,10 +62,6 @@ class SimpleEntitySearcher implements EntitySearcher {
 		MonstersTimings::$searchAreaEntities->startTiming();
 		for ($x = $size->min->getX(); $x <= $size->max->getX(); ++$x) {
 			for ($z = $size->min->getZ(); $z <= $size->max->getZ(); ++$z) {
-				if (!$position->getWorld()->isChunkLoaded($x, $z)) {
-					continue;
-				}
-
 				foreach ($position->getWorld()->getChunkEntities($x, $z) as $entity) {
 					if ($entity->isFlaggedForDespawn() || (!$option->includeDead && !$entity->isAlive())) {
 						continue;
