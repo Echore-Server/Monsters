@@ -242,8 +242,19 @@ class SimpleEntitySearcher implements EntitySearcher {
 		$vcen = new Vector2($shape->center->x, $shape->center->z);
 		$option ??= EntitySearchOption::default();
 
+		$areaPosition = Position::fromObject($shape->center, $world);
+		$areaPosition->y = 0;
+
 		$entities = [];
-		foreach ($this->getWithinRangePlane($vcen, $world, $shape->radius, $option) as $entity) {
+		$range = $this->algo->processDistanceSquared($shape->radius);
+		foreach ($this->getAreaEntities($areaPosition, $range, $option) as $entity) {
+			$bb = clone $entity->getBoundingBox();
+			$bb->minY = 0;
+			$bb->maxY = 0;
+			if ($this->algo->getDistance()->distanceSquaredBoundingBoxIfSupported($bb, $areaPosition) > $range) {
+				continue;
+			}
+
 			$ep = new Vector2($entity->getPosition()->x, $entity->getPosition()->z);
 			$ev = $entity->getPosition();
 
