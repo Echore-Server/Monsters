@@ -49,6 +49,6 @@ abstract class DurationState extends SchedulingState {
 			throw new RuntimeException("Not applied");
 		}
 		$this->repeatingTick = null;
-		$this->setNextRunTick(0);
+		$this->setNextRunTick($this->entity->getWorld()->getServer()->getTick() + 1);
 	}
 }
