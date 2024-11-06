@@ -95,6 +95,11 @@ trait MonsterTrait {
 		return $this;
 	}
 
+	protected function monsterEntityBaseTick(int $tickDiff = 1): void{
+
+	}
+
+
 	protected function entityBaseTick(int $tickDiff = 1): bool {
 		assert($this instanceof Living);
 		$hasUpdate = parent::entityBaseTick($tickDiff);
@@ -102,6 +107,8 @@ trait MonsterTrait {
 		if ($this->isAlive() && !$this->isFlaggedForDespawn()) {
 			$this->states->update($tickDiff);
 		}
+
+		$this->monsterEntityBaseTick($tickDiff);
 
 		return $hasUpdate;
 	}
