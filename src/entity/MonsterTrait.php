@@ -4,9 +4,11 @@ namespace Lyrica0954\Monsters\entity;
 
 use Closure;
 use Lyrica0954\Monsters\entity\state\StateManager;
+use Lyrica0954\Monsters\Main;
 use pocketmine\entity\Entity;
 use pocketmine\entity\Living;
 use pocketmine\event\entity\EntityDamageEvent;
+use pocketmine\scheduler\TaskScheduler;
 use pocketmine\utils\ObjectSet;
 
 trait MonsterTrait {
@@ -18,6 +20,8 @@ trait MonsterTrait {
 	protected ObjectSet $attackListeners;
 
 	protected ObjectSet $preAttackListeners;
+
+	protected TaskScheduler $monsterTaskScheduler;
 
 	/**
 	 * @return ObjectSet
@@ -76,10 +80,15 @@ trait MonsterTrait {
 		}
 	}
 
+	public function getTaskScheduler(): TaskScheduler {
+		return $this->monsterTaskScheduler;
+	}
+
 	protected function onDispose(): void {
 		$this->states->dispose();
 		parent::onDispose();
 	}
+
 
 	protected function initMonster(): void {
 		assert($this instanceof MonsterBase);
@@ -87,6 +96,7 @@ trait MonsterTrait {
 		$this->motioner = new Motioner($this->getEntity());
 		$this->attackListeners = new ObjectSet();
 		$this->preAttackListeners = new ObjectSet();
+		$this->monsterTaskScheduler = Main::getInstance()->getScheduler();
 	}
 
 	public function getEntity(): Living {
@@ -94,11 +104,6 @@ trait MonsterTrait {
 
 		return $this;
 	}
-
-	protected function monsterEntityBaseTick(int $tickDiff = 1): void{
-
-	}
-
 
 	protected function entityBaseTick(int $tickDiff = 1): bool {
 		assert($this instanceof Living);
@@ -113,8 +118,12 @@ trait MonsterTrait {
 		return $hasUpdate;
 	}
 
+	protected function monsterEntityBaseTick(int $tickDiff = 1): void {
+
+	}
+
 	protected function destroyCycles(): void {
 		parent::destroyCycles();
-		unset($this->motioner, $this->states);
+		unset($this->motioner, $this->states, $this->monsterTaskScheduler);
 	}
 }

@@ -8,6 +8,7 @@ use Closure;
 use Lyrica0954\Monsters\entity\state\StateManager;
 use pocketmine\entity\Living;
 use pocketmine\event\entity\EntityDamageEvent;
+use pocketmine\scheduler\TaskScheduler;
 use pocketmine\utils\ObjectSet;
 
 interface MonsterBase {
@@ -35,8 +36,11 @@ interface MonsterBase {
 	 * @return ObjectSet<Closure(EntityDamageEvent): void>
 	 */
 	public function getAttackListeners(): ObjectSet;
+
 	/**
 	 * @return ObjectSet<Closure(EntityDamageEvent): void>
 	 */
 	public function getPreAttackListeners(): ObjectSet;
+
+	public function getTaskScheduler(): TaskScheduler;
 }

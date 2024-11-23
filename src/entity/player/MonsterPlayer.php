@@ -7,8 +7,10 @@ namespace Lyrica0954\Monsters\entity\player;
 use Lyrica0954\Monsters\entity\MonsterBase;
 use Lyrica0954\Monsters\entity\Motioner;
 use Lyrica0954\Monsters\entity\state\StateManager;
+use Lyrica0954\Monsters\Main;
 use pocketmine\entity\Living;
 use pocketmine\player\Player;
+use pocketmine\scheduler\TaskScheduler;
 use pocketmine\utils\ObjectSet;
 use RuntimeException;
 use WeakMap;
@@ -26,10 +28,13 @@ class MonsterPlayer implements MonsterBase {
 
 	protected Motioner $motioner;
 
-	public function __construct(Player $player) {
+	protected TaskScheduler $taskScheduler;
+
+	public function __construct(Player $player, TaskScheduler $taskScheduler) {
 		$this->player = $player;
 		$this->states = new StateManager($this);
 		$this->motioner = new Motioner($player);
+		$this->taskScheduler = $taskScheduler;
 	}
 
 	public static function dispose(Player $player): void {
@@ -42,7 +47,7 @@ class MonsterPlayer implements MonsterBase {
 	}
 
 	private static function load(Player $player): MonsterPlayer {
-		return new self($player);
+		return new self($player, Main::getInstance()->getScheduler());
 	}
 
 	public function motion(): Motioner {
@@ -82,5 +87,9 @@ class MonsterPlayer implements MonsterBase {
 
 	public function getPreAttackListeners(): ObjectSet {
 		throw new RuntimeException("Not implemented");
+	}
+
+	public function getTaskScheduler(): TaskScheduler {
+		return $this->taskScheduler;
 	}
 }

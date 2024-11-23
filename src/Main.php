@@ -11,13 +11,19 @@ use pocketmine\event\player\PlayerQuitEvent;
 use pocketmine\plugin\PluginBase;
 use pocketmine\scheduler\ClosureTask;
 use pocketmine\Server;
+use pocketmine\utils\SingletonTrait;
 
 class Main extends PluginBase implements Listener {
+	use SingletonTrait;
 
 	public function onPlayerQuit(PlayerQuitEvent $event): void {
 		$player = $event->getPlayer();
 
 		MonsterPlayer::dispose($player);
+	}
+
+	protected function onLoad(): void {
+		self::setInstance($this);
 	}
 
 	protected function onEnable(): void {
