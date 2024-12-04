@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Lyrica0954\Monsters\entity;
 
-use Echore\Stargazer\Modifier;
 use Echore\Stargazer\ModifierSet;
 use Lyrica0954\Monsters\entity\source\MonsterMotionEvent;
 use Lyrica0954\Monsters\utils\MotionModifiers;
@@ -35,18 +34,18 @@ class Motioner {
 		return $this->modifiers;
 	}
 
-	public function customAttack(EntityDamageByEntityEvent $source, Modifier $xz = null, Modifier $y = null, ?Modifier $onGroundModifier = null): void {
-		$xz ??= Modifier::default();
-		$y ??= Modifier::default();
+	public function customAttack(EntityDamageByEntityEvent $source, float $xz = null, float $y = null, ?float $onGroundModifier = null): void {
+		$xz ??= 1.0;
+		$y ??= 1.0;
+		$onGroundModifier ??= 1.0;
 		$this->entity->attack($source);
 
 		$kb = $source->getKnockBack();
-		$onGroundModifier ??= Modifier::default();
 
 		if (!$source->isCancelled()) {
 			if ($this->entity->isOnGround()) {
-				$xz = Modifier::multiplier($xz->multiplier * $onGroundModifier->multiplier);
-				$y = Modifier::multiplier($y->multiplier * $onGroundModifier->multiplier);
+				$xz = $xz * $onGroundModifier;
+				$y = $y * $onGroundModifier;
 			}
 			$damager = $source->getDamager();
 
@@ -60,13 +59,13 @@ class Motioner {
 		}
 	}
 
-	public function getKnockBack(Vector3 $from, Modifier $xz, Modifier $y, float $base = 0.4): Vector3 {
+	public function getKnockBack(Vector3 $from, float $xz, float $y, float $base = 0.4): Vector3 {
 		$motion = $this->simulateKnockBack($from, $base);
 
-		$motion->x = $motion->x * $xz->multiplier + $xz->absolute;
-		$motion->z = $motion->z * $xz->multiplier + $xz->absolute;
+		$motion->x = $motion->x * $xz;
+		$motion->z = $motion->z * $xz;
 
-		$motion->y = $motion->y * $y->multiplier + $y->absolute;
+		$motion->y = $motion->y * $y;
 
 		return $motion;
 	}
@@ -96,7 +95,7 @@ class Motioner {
 		return $motion;
 	}
 
-	public function knockBack(Vector3 $from, Modifier $xz, Modifier $y, float $base = 0.4): void {
+	public function knockBack(Vector3 $from, float $xz, float $y, float $base = 0.4): void {
 		if ($base <= 0.0) {
 			return;
 		}

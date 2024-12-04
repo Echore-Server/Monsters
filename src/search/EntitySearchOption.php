@@ -9,13 +9,15 @@ use pocketmine\entity\Entity;
 
 class EntitySearchOption {
 
-	protected array $exludeSet;
+	protected array $excludeSet;
 
 	/**
 	 * @param bool $includeDead
 	 * @param string $entityType
 	 * @param int|null $max
 	 * @param int[] $exclude entity runtime id array
+	 * @param Closure|null $filter
+	 * @param Closure|null $processor
 	 */
 	public function __construct(
 		public bool     $includeDead = false,
@@ -30,7 +32,7 @@ class EntitySearchOption {
 
 	public function setExclude(array $exclude): void {
 		$this->exclude = $exclude;
-		$this->exludeSet = array_flip($exclude);
+		$this->excludeSet = array_flip($exclude);
 	}
 
 	public static function includeDead(bool $v): self {
@@ -94,6 +96,6 @@ class EntitySearchOption {
 	}
 
 	public function isExcluded(int $runtimeId): bool {
-		return isset($this->exludeSet[$runtimeId]); // in_array is weight
+		return isset($this->excludeSet[$runtimeId]); // in_array is weight
 	}
 }

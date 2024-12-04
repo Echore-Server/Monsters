@@ -35,9 +35,9 @@ class MotionModifiers {
 	}
 
 	public function apply(Vector3 $v): Vector3 {
-		$v->x = $v->x * $this->xz->getResult()->multiplier;
-		$v->y = $v->y * $this->y->getResult()->multiplier;
-		$v->z = $v->z * $this->xz->getResult()->multiplier;
+		$v->x = $v->x * $this->xz->getResult();
+		$v->y = $v->y * $this->y->getResult();
+		$v->z = $v->z * $this->xz->getResult();
 
 		return $v;
 	}
