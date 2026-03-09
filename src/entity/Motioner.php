@@ -34,7 +34,7 @@ class Motioner {
 		return $this->modifiers;
 	}
 
-	public function customAttack(EntityDamageByEntityEvent $source, float $xz = null, float $y = null, ?float $onGroundModifier = null): void {
+	public function customAttack(EntityDamageByEntityEvent $source, ?float $xz = null, ?float $y = null, ?float $onGroundModifier = null, ?Vector3 $knockbackFrom = null, float $modifiersPenetration = 0.0): void {
 		$xz ??= 1.0;
 		$y ??= 1.0;
 		$onGroundModifier ??= 1.0;
@@ -54,7 +54,7 @@ class Motioner {
 			}
 
 			if ($damager !== null && $damager->isAlive() && !$damager->isClosed() && !$damager->isFlaggedForDespawn()) {
-				$this->knockBack($damager->getPosition(), $xz, $y, $kb);
+				$this->knockBack($knockbackFrom ?? $damager->getPosition(), $xz, $y, $kb, $modifiersPenetration);
 			}
 		}
 	}
@@ -95,27 +95,36 @@ class Motioner {
 		return $motion;
 	}
 
-	public function knockBack(Vector3 $from, float $xz, float $y, float $base = 0.4): void {
+	public function knockBack(Vector3 $from, float $xz, float $y, float $base = 0.4, float $modifiersPenetration = 0.0): void {
 		if ($base <= 0.0) {
+			return;
+		}
+		if ($xz <= 0.0 && $y <= 0.0){
 			return;
 		}
 		$motion = $this->getKnockBack($from, $xz, $y, $base);
 
-		$this->set($motion, MonsterMotionEvent::SOURCE_SIMULATED_KNOCKBACK);
+		$this->set($motion, $modifiersPenetration, MonsterMotionEvent::SOURCE_SIMULATED_KNOCKBACK);
 	}
 
-	public function set(Vector3 $motion, int $source = MonsterMotionEvent::SOURCE_UNKNOWN): void {
-		$v = $this->modifiers->apply(clone $motion);
+	public function set(Vector3 $motion, float $modifiersPenetration = 0.0, int $source = MonsterMotionEvent::SOURCE_UNKNOWN): void {
+		$v = $this->modifiers->apply(clone $motion, $modifiersPenetration);
 
-		$ev = new MonsterMotionEvent($this->entity, $v, $source);
-		$ev->call();
+		if ($v->lengthSquared() <= 0){
+			return;
+		}
+
+		if (MonsterMotionEvent::hasHandlers()){
+			$ev = new MonsterMotionEvent($this->entity, $v, $source);
+			$ev->call();
+		}
 
 		$this->entity->setMotion($v);
 	}
 
-	public function add(float $x, float $y, float $z): void {
+	public function add(float $x, float $y, float $z, float $modifiersPenetration = 0.0): void {
 		$v = new Vector3($x, $y, $z);
-		$this->modifiers->apply($v);
+		$this->modifiers->apply($v, $modifiersPenetration);
 		$this->entity->addMotion($v->x, $v->y, $v->z);
 	}
 }

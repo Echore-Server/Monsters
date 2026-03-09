@@ -34,10 +34,12 @@ class MotionModifiers {
 		}
 	}
 
-	public function apply(Vector3 $v): Vector3 {
-		$v->x = $v->x * $this->xz->getResult();
-		$v->y = $v->y * $this->y->getResult();
-		$v->z = $v->z * $this->xz->getResult();
+	public function apply(Vector3 $v, float $penetration = 0.0): Vector3 {
+		$xz = $this->xz->getResult() + ((1.0 - $this->xz->getResult()) * $penetration);
+		$y = $this->y->getResult() + ((1.0 - $this->y->getResult()) * $penetration);
+		$v->x *= $xz;
+		$v->y *= $y;
+		$v->z *= $xz;
 
 		return $v;
 	}

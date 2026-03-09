@@ -23,7 +23,7 @@ interface EntitySearcher {
 	 *
 	 * @return Entity[]
 	 */
-	public function getWithinSpecifyRange(Position $position, float $rangeMin, float $rangeMax, EntitySearchOption $option = null): array;
+	public function getWithinSpecifyRange(Position $position, float $rangeMin, float $rangeMax, ?EntitySearchOption $option = null): array;
 
 	/**
 	 * @param Position $position
@@ -32,7 +32,7 @@ interface EntitySearcher {
 	 *
 	 * @return Entity[]
 	 */
-	public function getWithinRange(Position $position, float $range, EntitySearchOption $option = null): array;
+	public function getWithinRange(Position $position, float $range, ?EntitySearchOption $option = null): array;
 
 	/**
 	 * @param Vector2 $position
@@ -43,7 +43,7 @@ interface EntitySearcher {
 	 *
 	 * @return Entity[]
 	 */
-	public function getWithinSpecifyRangePlane(Vector2 $position, World $world, float $rangeMin, float $rangeMax, EntitySearchOption $option = null): array;
+	public function getWithinSpecifyRangePlane(Vector2 $position, World $world, float $rangeMin, float $rangeMax, ?EntitySearchOption $option = null): array;
 
 	/**
 	 * @param Vector2 $position
@@ -53,7 +53,7 @@ interface EntitySearcher {
 	 *
 	 * @return Entity[]
 	 */
-	public function getWithinRangePlane(Vector2 $position, World $world, float $range, EntitySearchOption $option = null): array;
+	public function getWithinRangePlane(Vector2 $position, World $world, float $range, ?EntitySearchOption $option = null): array;
 
 	/**
 	 * @param Vector2 $position
@@ -68,7 +68,7 @@ interface EntitySearcher {
 	 * @param EntitySearchOption|null $option
 	 * @return Entity[]
 	 */
-	public function getAreaEntities(Position $position, float $distance, EntitySearchOption $option = null): array;
+	public function getAreaEntities(Position $position, float $distance, ?EntitySearchOption $option = null): array;
 
 
 	/**
@@ -77,7 +77,7 @@ interface EntitySearcher {
 	 * @param EntitySearchOption|null $option
 	 * @return EntitySearchResult|null
 	 */
-	public function getNearest(Position $position, float $maxDistance = PHP_INT_MAX, EntitySearchOption $option = null): ?EntitySearchResult;
+	public function getNearest(Position $position, float $maxDistance = PHP_INT_MAX, ?EntitySearchOption $option = null): ?EntitySearchResult;
 
 	/**
 	 * @param Position $position
@@ -87,7 +87,7 @@ interface EntitySearcher {
 	 * @param EntitySearchOption|null $option
 	 * @return RayTraceEntityResult[]
 	 */
-	public function getLineOfSight(Position $position, Vector3 $direction, float $length, ?Vector3 $expand = null, EntitySearchOption $option = null): array;
+	public function getLineOfSight(Position $position, Vector3 $direction, float $length, ?Vector3 $expand = null, ?EntitySearchOption $option = null): array;
 
 	/**
 	 * @param TriangleShape $shape
@@ -98,7 +98,7 @@ interface EntitySearcher {
 	 *
 	 * @experimental
 	 */
-	public function getInsideOfTriangle(TriangleShape $shape, World $world, EntitySearchOption $option = null): array;
+	public function getInsideOfTriangle(TriangleShape $shape, World $world, ?EntitySearchOption $option = null): array;
 
 	/**
 	 * @param CircularSectorShape $shape
@@ -108,5 +108,5 @@ interface EntitySearcher {
 	 *
 	 * @return Entity[]
 	 */
-	public function getInsideOfCircularSector(CircularSectorShape $shape, World $world, float $height, EntitySearchOption $option = null): array;
+	public function getInsideOfCircularSector(CircularSectorShape $shape, World $world, float $height, ?EntitySearchOption $option = null): array;
 }

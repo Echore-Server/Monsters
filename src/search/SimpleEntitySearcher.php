@@ -47,7 +47,7 @@ class SimpleEntitySearcher implements EntitySearcher {
 		return $entities;
 	}
 
-	public function getAreaEntities(Position $position, float $distance, EntitySearchOption $option = null): array {
+	public function getAreaEntities(Position $position, float $distance, ?EntitySearchOption $option = null): array {
 		$size = $this->getChunkSize(new Vector2($position->x, $position->z), $distance);
 		$option ??= EntitySearchOption::default();
 		$count = 0;
@@ -111,7 +111,7 @@ class SimpleEntitySearcher implements EntitySearcher {
 	 * @param EntitySearchOption|null $option
 	 * @return array|Entity[]
 	 */
-	public function getWithinRange(Position $position, float $range, EntitySearchOption $option = null): array {
+	public function getWithinRange(Position $position, float $range, ?EntitySearchOption $option = null): array {
 		$range = $this->algo->processDistanceSquared($range);
 		$option ??= EntitySearchOption::default();
 
@@ -172,7 +172,7 @@ class SimpleEntitySearcher implements EntitySearcher {
 		return new EntitySearchResult($e, $d);
 	}
 
-	public function getLineOfSight(Position $position, Vector3 $direction, float $length, ?Vector3 $expand = null, EntitySearchOption $option = null): array {
+	public function getLineOfSight(Position $position, Vector3 $direction, float $length, ?Vector3 $expand = null, ?EntitySearchOption $option = null): array {
 		$expand ??= new Vector3(0, 0, 0);
 		$min = $position;
 		$max = $min->addVector($direction->multiply($length));

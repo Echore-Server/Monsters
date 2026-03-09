@@ -11,8 +11,6 @@ use Lyrica0954\Monsters\Main;
 use pocketmine\entity\Living;
 use pocketmine\player\Player;
 use pocketmine\scheduler\TaskScheduler;
-use pocketmine\utils\ObjectSet;
-use RuntimeException;
 use WeakMap;
 
 class MonsterPlayer implements MonsterBase {
@@ -50,6 +48,7 @@ class MonsterPlayer implements MonsterBase {
 		return new self($player, Main::getInstance()->getScheduler());
 	}
 
+
 	public function motion(): Motioner {
 		return $this->motioner;
 	}
@@ -79,14 +78,6 @@ class MonsterPlayer implements MonsterBase {
 	 */
 	public function getPlayer(): Player {
 		return $this->player;
-	}
-
-	public function getAttackListeners(): ObjectSet {
-		throw new RuntimeException("Not implemented");
-	}
-
-	public function getPreAttackListeners(): ObjectSet {
-		throw new RuntimeException("Not implemented");
 	}
 
 	public function getTaskScheduler(): TaskScheduler {

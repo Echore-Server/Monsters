@@ -6,4 +6,6 @@ api: [ 4.12.2, 5.0.0 ]
 src-namespace-prefix: Lyrica0954\Monsters
 
 depend: [ Stargazer ]
+softdepend:
+  - PMRuntimeUnit
 ...

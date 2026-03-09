@@ -51,12 +51,12 @@ abstract class State {
 	}
 
 	public function dispose(): void {
+		$this->disposed = true;
 		if ($this->applied) {
 			$this->onRemove();
 		}
 
 		$this->applied = false;
-		$this->disposed = true;
 	}
 
 	abstract public function onRemove(): void;

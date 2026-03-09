@@ -7,8 +7,8 @@ namespace Lyrica0954\Monsters\entity\state;
 use Closure;
 use Lyrica0954\Monsters\entity\MonsterBase;
 use pocketmine\entity\Living;
+use pocketmine\Server;
 use pocketmine\utils\ObjectSet;
-use pocketmine\utils\ReversePriorityQueue;
 use RuntimeException;
 
 /**
@@ -31,17 +31,12 @@ class StateManager {
 	/**
 	 * @var array<string, State[]>
 	 */
-	protected array $actionStates;
-
-	/**
-	 * @var array<string, State[]>
-	 */
 	protected array $stateByClass;
 
 	/**
-	 * @var ReversePriorityQueue<int, SchedulingState>
+	 * @var array<int, SchedulingState[]>
 	 */
-	protected ReversePriorityQueue $scheduledStates;
+	protected array $scheduledStates;
 
 	protected bool $disposed;
 
@@ -54,16 +49,18 @@ class StateManager {
 
 	protected int $lastUpdatedTick;
 
+	protected int $scheduledStateCount;
+
 	public function __construct(MonsterBase $monster) {
 		$this->monster = $monster;
 		$this->states = [];
-		$this->actionStates = [];
 		$this->updatingStates = [];
 		$this->stateByClass = [];
 		$this->lastUpdatedTick = $this->monster->getEntity()->getWorld()->getServer()->getTick();
-		$this->scheduledStates = new ReversePriorityQueue();
+		$this->scheduledStates = [];
 		$this->disposed = false;
 		$this->applyHooks = [];
+		$this->scheduledStateCount = 0;
 		$this->applyListeners = new ObjectSet();
 	}
 
@@ -112,15 +109,16 @@ class StateManager {
 			$this->scheduleState($state, $state->getNextRunTick());
 		}
 
+		$targetHash = spl_object_hash($state);
+
 		$state->setApplied(true);
 		$state->onApply();
+		$this->states[$targetHash] = $state;
 
-		$this->states[spl_object_hash($state)] = $state;
-
-		$this->stateByClass[$state::class][spl_object_hash($state)] = $state;
+		$this->stateByClass[$state::class][$targetHash] = $state;
 
 		if ($state instanceof UpdatingState && $state->useBaseTick()) {
-			$this->updatingStates[spl_object_hash($state)] = $state;
+			$this->updatingStates[$targetHash] = $state;
 		}
 
 		foreach ($this->applyListeners as $listener) {
@@ -150,7 +148,7 @@ class StateManager {
 	 * @internal
 	 */
 	public function scheduleState(SchedulingState $state, int $tick): void {
-		$this->scheduledStates->insert($state, $tick);
+		$this->insertToScheduledStates($state, $tick);
 		$state->setInternalNextRunTick($tick);
 
 		$state->setUpdateMediator(function() use ($state): void {
@@ -158,16 +156,33 @@ class StateManager {
 		});
 	}
 
+	protected function insertToScheduledStates(SchedulingState $state, int $tick): void {
+		$this->scheduledStates[$tick][spl_object_hash($state)] = $state;
+		$this->scheduledStateCount++;
+	}
+
 	public function onScheduleStateUpdate(SchedulingState $state): void {
 		$currentTick = $this->monster->getEntity()->getWorld()->getServer()->getTick();
 		if ($state->getNextRunTick() <= $currentTick) {
+			$this->removeFromScheduledStates($state, $state->getInternalNextRunTick());
 			$this->notify($state);
+
+			return;
 		}
 
-		if ($state->getNextRunTick() < $state->getInternalNextRunTick()) {
-			$this->scheduledStates->insert($state, $state->getNextRunTick());
+		if ($state->getNextRunTick() !== $state->getInternalNextRunTick()) {
+			$this->removeFromScheduledStates($state, $state->getInternalNextRunTick());
+			$this->insertToScheduledStates($state, $state->getNextRunTick());
+
 			$state->setInternalNextRunTick($state->getNextRunTick());
 		}
+	}
+
+	protected function removeFromScheduledStates(SchedulingState $state, int $tick): void {
+		if (isset($this->scheduledStates[$tick][spl_object_hash($state)])) {
+			$this->scheduledStateCount--;
+		}
+		unset($this->scheduledStates[$tick][spl_object_hash($state)]);
 	}
 
 	protected function notify(SchedulingState $state): void {
@@ -177,7 +192,7 @@ class StateManager {
 		if ($state->getRepeatingTick() !== null) {
 			$state->setNextRunTick($state->getNextRunTick() + $state->getRepeatingTick());
 			$state->setInternalNextRunTick($state->getNextRunTick());
-			$this->scheduledStates->insert($state, $state->getNextRunTick() + $state->getRepeatingTick());
+			$this->insertToScheduledStates($state, $state->getNextRunTick());
 		} else {
 			$this->remove($state);
 		}
@@ -192,17 +207,15 @@ class StateManager {
 			return;
 		}
 
-		unset($this->states[spl_object_hash($state)]);
-		unset($this->updatingStates[spl_object_hash($state)]);
-		unset($this->stateByClass[$state::class][spl_object_hash($state)]);
+		$targetHash = spl_object_hash($state);
 
-		foreach ($this->actionStates as $action => $states) {
-			foreach ($states as $hash => $tstate) {
-				if ($hash === spl_object_id($state)) {
-					unset($this->actionStates[$action][$hash]);
-				}
-			}
+		if ($state instanceof SchedulingState) {
+			$this->removeFromScheduledStates($state, $state->getInternalNextRunTick());
 		}
+
+		unset($this->states[$targetHash]);
+		unset($this->updatingStates[$targetHash]);
+		unset($this->stateByClass[$state::class][$targetHash]);
 
 		$state->dispose();
 
@@ -245,7 +258,7 @@ class StateManager {
 	}
 
 	public function has(string $class): bool {
-		return count($this->getOf($class)) > 0;
+		return !empty($this->getOf($class));
 	}
 
 	/**
@@ -265,7 +278,7 @@ class StateManager {
 	public function getOneOf(string $class): mixed {
 		$states = $this->getOf($class);
 
-		if (count($states) === 0) {
+		if (empty($states)) {
 			return null;
 		}
 
@@ -301,31 +314,17 @@ class StateManager {
 		return $states;
 	}
 
-	public function action(string $action): void {
-		if ($this->disposed) {
-			throw new RuntimeException("state manager is already disposed");
-		}
-
-		foreach ($this->actionStates[$action] ?? [] as $state) {
-			$state->$action();
-		}
-	}
-
 	public function update(int $tickDiff = 1): void {
-		$currentTick = $this->monster->getEntity()->getWorld()->getServer()->getTick();
+		$currentTick = Server::getInstance()->getTick();
 
-		while (!$this->scheduledStates->isEmpty() && $this->scheduledStates->current()->getInternalNextRunTick() <= $currentTick) {
-			$state = $this->scheduledStates->extract();
-
-			if ($state->isDisposed()) {
-				continue;
-			}
-
-			if ($state->getInternalNextRunTick() < $state->getNextRunTick()) {
-				$this->scheduledStates->insert($state, $state->getNextRunTick());
-				$state->setInternalNextRunTick($state->getNextRunTick());
-			} else {
-				$this->notify($state);
+		if ($this->scheduledStateCount > 0) {
+			for ($tick = $this->lastUpdatedTick + 1; $tick <= $currentTick; $tick++) {
+				foreach ($this->scheduledStates[$tick] ?? [] as $state) {
+					if ($state->isDisposed()) {
+						continue;
+					}
+					$this->notify($state);
+				}
 			}
 		}
 
@@ -342,6 +341,6 @@ class StateManager {
 			$state->baseTick($tickDiff);
 		}
 
-		$this->lastUpdatedTick = $this->monster->getEntity()->getWorld()->getServer()->getTick();
+		$this->lastUpdatedTick = $currentTick;
 	}
 }

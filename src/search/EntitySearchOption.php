@@ -30,9 +30,10 @@ class EntitySearchOption {
 		$this->setExclude($exclude);
 	}
 
-	public function setExclude(array $exclude): void {
+	public function setExclude(array $exclude): self {
 		$this->exclude = $exclude;
 		$this->excludeSet = array_flip($exclude);
+		return $this;
 	}
 
 	public static function includeDead(bool $v): self {

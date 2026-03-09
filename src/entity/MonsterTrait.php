@@ -2,10 +2,12 @@
 
 namespace Lyrica0954\Monsters\entity;
 
-use Closure;
+use Echore\StarProject\entity\source\MonsterDamageEvent;
+use Echore\StarProject\entity\source\MonsterDamageSource;
+use Echore\StarProject\game\attribute\DefaultDamageAttributes;
 use Lyrica0954\Monsters\entity\state\StateManager;
 use Lyrica0954\Monsters\Main;
-use pocketmine\entity\Entity;
+use pocketmine\block\Lava;
 use pocketmine\entity\Living;
 use pocketmine\event\entity\EntityDamageEvent;
 use pocketmine\scheduler\TaskScheduler;
@@ -17,31 +19,10 @@ trait MonsterTrait {
 
 	protected Motioner $motioner;
 
-	protected ObjectSet $attackListeners;
-
-	protected ObjectSet $preAttackListeners;
-
 	protected TaskScheduler $monsterTaskScheduler;
 
-	/**
-	 * @return ObjectSet
-	 */
-	public function getAttackListeners(): ObjectSet {
-		return $this->attackListeners;
-	}
+	protected ObjectSet $attackCaptures;
 
-	/**
-	 * @return ObjectSet<Closure(EntityDamageEvent): void>
-	 */
-	public function getPreAttackListeners(): ObjectSet {
-		return $this->preAttackListeners;
-	}
-
-	public function hitEntity(Entity $entity, float $range): void {
-		parent::hitEntity($entity, $range);
-
-		$this->states->action("hitEntity");
-	}
 
 	/**
 	 * Get the value of states
@@ -61,27 +42,11 @@ trait MonsterTrait {
 		return $this->motioner;
 	}
 
-	/**
-	 * @param EntityDamageEvent $source
-	 *
-	 * @return void
-	 *
-	 * @notHandler
-	 */
-	public function attack(EntityDamageEvent $source): void {
-		foreach ($this->preAttackListeners as $listener) {
-			($listener)($source);
-		}
-
-		parent::attack($source);
-
-		foreach ($this->attackListeners as $listener) {
-			($listener)($source);
-		}
-	}
-
 	public function getTaskScheduler(): TaskScheduler {
 		return $this->monsterTaskScheduler;
+	}
+
+	public function applyDamageModifiers(EntityDamageEvent $source): void {
 	}
 
 	protected function onDispose(): void {
@@ -89,14 +54,12 @@ trait MonsterTrait {
 		parent::onDispose();
 	}
 
-
 	protected function initMonster(): void {
 		assert($this instanceof MonsterBase);
 		$this->states = new StateManager($this);
 		$this->motioner = new Motioner($this->getEntity());
-		$this->attackListeners = new ObjectSet();
-		$this->preAttackListeners = new ObjectSet();
 		$this->monsterTaskScheduler = Main::getInstance()->getScheduler();
+		$this->attackCaptures = new ObjectSet();
 	}
 
 	public function getEntity(): Living {
@@ -111,6 +74,18 @@ trait MonsterTrait {
 
 		if ($this->isAlive() && !$this->isFlaggedForDespawn()) {
 			$this->states->update($tickDiff);
+
+			if ($this->getWorld()->getBlock($this->getPosition()) instanceof Lava) {
+				$source = new MonsterDamageEvent(
+					$this,
+					EntityDamageEvent::CAUSE_LAVA,
+					MonsterDamageSource::NATURAL | MonsterDamageSource::STATIC,
+					$this->getMaxHealth() * 0.01 * $tickDiff,
+					DefaultDamageAttributes::FLAME()
+				);
+
+				$this->attack($source);
+			}
 		}
 
 		$this->monsterEntityBaseTick($tickDiff);

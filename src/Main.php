@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Lyrica0954\Monsters;
 
+use Echore\PMRuntimeUnit\PMRuntimeUnit;
 use Lyrica0954\Monsters\entity\player\MonsterPlayer;
+use Lyrica0954\Monsters\tests\TestCaseEntityStates;
+use Lyrica0954\Monsters\tests\TestCaseStates;
 use Lyrica0954\Monsters\timings\MonstersTimings;
 use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerQuitEvent;
@@ -24,6 +27,10 @@ class Main extends PluginBase implements Listener {
 
 	protected function onLoad(): void {
 		self::setInstance($this);
+		if (class_exists("\Echore\PMRuntimeUnit\PMRuntimeUnit")) {
+			PMRuntimeUnit::addTestCase(new TestCaseStates());
+			PMRuntimeUnit::addTestCase(new TestCaseEntityStates());
+		}
 	}
 
 	protected function onEnable(): void {

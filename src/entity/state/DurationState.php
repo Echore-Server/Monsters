@@ -38,7 +38,7 @@ abstract class DurationState extends SchedulingState {
 	}
 
 	public function setRemainTick(int $remainTick, ?int $currentTick = null): void {
-		$this->setNextRunTick(($currentTick ?? $this->entity->getWorld()->getServer()->getTick()) + $remainTick);
+		$this->setNextRunTick(($currentTick ?? $this->entity->getWorld()->getServer()->getTick()) + max(1, $remainTick));
 	}
 
 	public function flagForRemove(): void {
